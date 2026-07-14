@@ -424,13 +424,49 @@ export default function ProfileSelection({ onSelect, onSelectAalekh }) {
           initial={{ opacity: 0, y: 35 }}
           animate={showCards ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
           transition={{ delay: 0.8, duration: 0.8, ease: SOVEREIGN_EASE }}
-          className={`mt-20 ${showCards ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          className={`mt-20 ${showCards ? 'pointer-events-auto' : 'pointer-events-none'} flex gap-4`}
         >
+           <motion.button 
+             onClick={() => {
+               // Prompt for profile edit
+               const pList = [...profiles];
+               if (pList.length === 0) return;
+               
+               const editName = prompt("Enter index (1 to " + pList.length + ") of the profile you want to edit:");
+               const index = parseInt(editName) - 1;
+               if (isNaN(index) || index < 0 || index >= pList.length) {
+                 alert("Invalid index selected.");
+                 return;
+               }
+               const selectedP = pList[index];
+               const newName = prompt("Enter new Profile Name:", selectedP.name);
+               if (newName && newName.trim()) {
+                 selectedP.name = newName.trim();
+                 selectedP.avatar = newName.trim().charAt(0).toUpperCase();
+                 localStorage.setItem('netflix_profiles', JSON.stringify(pList));
+                 setProfiles(pList);
+                 // If the edited profile was the active one, update it as well
+                 const active = localStorage.getItem('netflix_active_profile');
+                 if (active) {
+                   const activeObj = JSON.parse(active);
+                   if (activeObj.name === selectedP.name || index === 0) {
+                     localStorage.setItem('netflix_active_profile', JSON.stringify(selectedP));
+                   }
+                 }
+               }
+             }}
+             whileHover={{ scale: 1.06, transition: { duration: 0.2, ease: HOVER_EASE } }}
+             whileTap={{ scale: 0.95 }}
+             className="border border-white/10 font-mono text-xs text-neutral-400 px-6 py-2.5 hover:border-white/50 hover:text-white transition-colors tracking-[0.08em] uppercase rounded-[4px]"
+           >
+             Edit Profile
+           </motion.button>
+           
            <motion.button 
              onClick={() => {
                setPopupContent({
                  title: "Manage Profiles?",
-                 desc: <span className="text-lg block my-4 leading-relaxed text-white">Profile settings are managed through your account settings on the web.</span>,
+                 desc: <span className="text-lg block my-4 leading-relaxed text-white">Click "Edit Profile" to rename any profile!</span>,
                  sub: "Profile is ready!"
                });
              }}

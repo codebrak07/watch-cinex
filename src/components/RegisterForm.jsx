@@ -144,7 +144,7 @@ export default function RegisterForm() {
                   className="mt-0.5 accent-[#e50914] cursor-pointer"
                 />
                 <span className="font-sans">
-                  I agree that I am a certified Niggamon, and accept all terms of service including admitting Cristiano Ronaldo is the undisputed GOAT.
+                  I agree that I am a certified Niggamon, and accept all terms of service including admitting Nigga is the undisputed GNOAT, greatest nigga of all time.
                 </span>
               </label>
 

@@ -810,7 +810,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
     // Open modal immediately with base item details and set loading status
     setSelectedSearchResult({
       ...item,
-      isLoadingRonaldo: true,
+      isLoadingNigga: true,
       imdb_id: null,
       cast: []
     });
@@ -835,8 +835,8 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         ...detailData,
         imdb_id: externalData.imdb_id || detailData.imdb_id,
         cast: (creditsData.cast || []).slice(0, 8),
-        isLoadingRonaldo: false,
-        ronaldoAnswered: true
+        isLoadingNigga: false,
+        niggaAnswered: true
       });
     } catch (err) {
       console.error("Error fetching details:", err);
@@ -844,8 +844,8 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         ...item,
         imdb_id: null,
         cast: [],
-        isLoadingRonaldo: false,
-        ronaldoAnswered: false
+        isLoadingNigga: false,
+        niggaAnswered: false
       });
     }
   };
@@ -1178,14 +1178,14 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
               >
                 {/* Cristiano Ronaldo Query Banner (Above Card) */}
                 <div className="z-50 pointer-events-none select-none flex justify-center w-full max-w-4xl px-2">
-                  {selectedSearchResult.isLoadingRonaldo ? (
+                  {selectedSearchResult.isLoadingNigga ? (
                     <div className="bg-[#141414] border border-white/10 text-white font-sans text-sm font-semibold tracking-wide px-5 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-3">
-                      <span>asking from Cristiano Ronaldo</span>
+                      <span>asking from nigga...</span>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     </div>
-                  ) : selectedSearchResult.ronaldoAnswered ? (
+                  ) : selectedSearchResult.niggaAnswered ? (
                     <div className="bg-[#141414] border border-white/10 text-green-500 font-sans text-sm font-semibold tracking-wide px-5 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-2">
-                      <span>got answer from Ronaldo!</span>
+                      <span>got answer from gnoat, greatest nigga of all time!</span>
                       <span className="text-green-500">✓</span>
                     </div>
                   ) : null}

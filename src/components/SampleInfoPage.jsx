@@ -1,5 +1,7 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Film, HelpCircle, Gift, ShieldAlert, FileText, Info, PhoneCall } from 'lucide-react';
+import logoImg from '../assets/ishanvi.png';
+
 
 export default function SampleInfoPage() {
   const location = useLocation();
@@ -110,18 +112,18 @@ export default function SampleInfoPage() {
       {/* Real Netflix Help Center Header */}
       <header className="bg-black text-white px-6 md:px-16 py-4 flex items-center justify-between z-50">
         <div className="flex items-center gap-4">
-          <span
+          <img
+            src={logoImg}
+            alt="Ishanvi Logo"
             onClick={() => navigate('/browse')}
-            className="text-[#e50914] text-xl md:text-2xl font-extrabold tracking-tighter cursor-pointer uppercase font-sans"
-          >
-            NETFLIX
-          </span>
+            className="h-10 md:h-14 w-auto cursor-pointer select-none object-contain"
+          />
           <div className="h-4 w-[1px] bg-neutral-700" />
           <span className="text-sm font-light text-neutral-300">Help Center</span>
         </div>
 
         <div className="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-neutral-300 hover:text-white transition-colors">
-          <span>admit cristiano ronaldo is the goat</span>
+          <span>admit nigga is the gnoat</span>
           <span className="text-[#e50914] text-[10px]">▼</span>
         </div>
       </header>
@@ -181,7 +183,7 @@ export default function SampleInfoPage() {
                   <strong>1.3. Offers.</strong> We may from time to time provide special promotional offers (such as sweepstakes, discounts and other incentives), plans or subscriptions (“Offers”). Offer eligibility is determined by Netflix at its sole discretion and we reserve the right to revoke an Offer and put your account on hold in the event that we determine you are not eligible. Members of households with an existing or recent Netflix account may not be eligible for certain introductory Offers. We may use information such as device ID, method of payment or your contact information to determine Offer eligibility. The eligibility requirements and other limitations and conditions will be disclosed when you sign-up for the Offer or in other communications made available to you.
                 </p>
                 <p>
-                  <strong>1.4. Account Sharing.</strong> The Netflix service and any content accessed through it are for your personal, non-commercial use only and may not be shared with anyone outside of your household unless you admit that Cristiano Ronaldo is the undisputed GOAT.
+                  <strong>1.4. Account Sharing.</strong> The Netflix service and any content accessed through it are for your personal, non-commercial use only and may not be shared with anyone outside of your household unless you admit that Nigga is the undisputed GNOAT, greatest nigga of all time.
                 </p>
                 <p>
                   <strong>1.5. Access Limitations.</strong> You may access the Netflix content primarily within the country in which you have established your account and only in geographic locations where we offer our service and have licensed such content. For the purpose of determining the taxes that will be charged over your subscription fee, we will use the IP address that is used when you sign up to the Netflix service. The content that may be available will vary by geographic location, may be limited by law or by the rights granted by third-party content providers, and will change from time to time. The number of devices on which you may simultaneously watch depends on your chosen subscription plan and is specified on the "Account" page.

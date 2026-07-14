@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Bell, ChevronDown, LogOut, Heart } from 'lucide-react';
+import logoImg from '../assets/ishanvi.png';
+
 
 const SOVEREIGN_EASE = [0.16, 1, 0.3, 1];
 const HOVER_EASE = [0.25, 1, 0.5, 1];
@@ -14,6 +16,8 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileBrowseOpen, setIsMobileBrowseOpen] = useState(false);
   const [activeProfile, setActiveProfile] = useState({ name: 'Nigga Ishanvi', avatar: 'N' });
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [tempProfileName, setTempProfileName] = useState('');
 
   useEffect(() => {
     const active = localStorage.getItem('netflix_active_profile');
@@ -21,6 +25,33 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
       setActiveProfile(JSON.parse(active));
     }
   }, [isDropdownOpen]);
+
+  const handleRenameProfile = () => {
+    setTempProfileName(activeProfile.name);
+    setIsRenameModalOpen(true);
+  };
+
+  const handleSaveRename = () => {
+    if (tempProfileName && tempProfileName.trim()) {
+      const trimmed = tempProfileName.trim();
+      const updatedActive = { ...activeProfile, name: trimmed, avatar: trimmed.charAt(0).toUpperCase() };
+      localStorage.setItem('netflix_active_profile', JSON.stringify(updatedActive));
+      setActiveProfile(updatedActive);
+      
+      const savedProfiles = localStorage.getItem('netflix_profiles');
+      if (savedProfiles) {
+        const pList = JSON.parse(savedProfiles);
+        const updatedList = pList.map(p => {
+          if (p.name === activeProfile.name) {
+            return { ...p, name: trimmed, avatar: trimmed.charAt(0).toUpperCase() };
+          }
+          return p;
+        });
+        localStorage.setItem('netflix_profiles', JSON.stringify(updatedList));
+      }
+      setIsRenameModalOpen(false);
+    }
+  };
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,18 +116,17 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
     >
       {/* Left Side: Brand Logo and Navigation Links */}
       <div className="flex items-center gap-6 md:gap-10">
-        {/* Netflix-style Red Logo */}
-        <h1 
+        <img 
+          src={logoImg}
+          alt="Ishanvi Logo"
           onClick={() => {
             if (onHomeClick) onHomeClick();
             else {
               navigate('/browse');
             }
           }}
-          className="text-[#e50914] text-3xl font-extrabold tracking-tighter cursor-pointer select-none font-sans uppercase" 
-        >
-          NETFLIX
-        </h1>
+          className="h-6 md:h-8 w-auto cursor-pointer select-none object-contain" 
+        />
 
         {/* Desktop Links */}
         <ul className="hidden md:flex items-center gap-5 text-sm font-sans">
@@ -320,21 +350,50 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
 
                 <div className="relative bg-black z-20 flex flex-col gap-3">
                   {/* Active Profile indicator */}
-                  <div className="flex items-center gap-3 px-3 py-2 cursor-default border-b border-zinc-800 pb-3">
-                    <div className="w-8 h-8 rounded bg-[#e50914] flex items-center justify-center font-bold text-white text-sm select-none">
-                      {activeProfile.avatar}
+                  <div className="flex items-center justify-between gap-3 px-3 py-2 cursor-default border-b border-zinc-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-[#e50914] flex items-center justify-center font-bold text-white text-sm select-none">
+                        {activeProfile.avatar}
+                      </div>
+                      <span className="text-xs text-neutral-200 font-semibold">{activeProfile.name}</span>
                     </div>
-                    <span className="text-xs text-neutral-200 font-semibold">{activeProfile.name}</span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRenameProfile();
+                      }}
+                      className="p-1 hover:bg-white/10 rounded transition-colors text-neutral-400 hover:text-white cursor-pointer"
+                      title="Rename profile"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
                   </div>
 
                   {/* Settings Actions Menu */}
                   <div className="flex flex-col px-1 text-[13px] text-neutral-300">
-                    <div className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm">
+                    <div 
+                      onClick={onSwitchProfile}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm"
+                    >
+                      <svg className="w-4 h-4 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <line x1="9" y1="3" x2="9" y2="21" />
+                      </svg>
+                      <span>Manage Profiles</span>
+                    </div>
+
+                    <div 
+                      onClick={handleRenameProfile}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm"
+                    >
                       <svg className="w-4 h-4 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
-                      <span>Manage Profiles</span>
+                      <span>Rename Profile</span>
                     </div>
 
                     <div className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm">
@@ -384,6 +443,56 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
           </AnimatePresence>
         </div>
       </div>
+      {/* Custom Professional Rename Profile Modal */}
+      <AnimatePresence>
+        {isRenameModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ duration: 0.3, ease: SOVEREIGN_EASE }}
+              className="bg-[#141414] border border-white/10 rounded-lg p-6 max-w-sm w-full shadow-2xl relative font-sans"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Outer glow line */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#e50914] to-neutral-800 rounded-lg blur opacity-25 -z-10" />
+              
+              <h3 className="text-xl font-semibold text-white mb-4">Rename Profile</h3>
+              
+              <div className="mb-6">
+                <label className="block text-xs font-mono uppercase tracking-wider text-neutral-400 mb-2">Profile Name</label>
+                <input
+                  type="text"
+                  value={tempProfileName}
+                  onChange={(e) => setTempProfileName(e.target.value)}
+                  placeholder="Enter name"
+                  className="w-full bg-[#202020] border border-white/10 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] outline-none rounded px-3 py-2 text-sm text-white placeholder-neutral-500 transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveRename();
+                  }}
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 font-mono text-xs">
+                <button
+                  onClick={() => setIsRenameModalOpen(false)}
+                  className="border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white px-4 py-2 rounded transition-colors uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveRename}
+                  className="bg-[#e50914] hover:bg-[#b20710] text-white px-5 py-2 rounded transition-colors font-bold uppercase tracking-wider shadow-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
