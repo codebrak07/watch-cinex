@@ -1,0 +1,682 @@
+@import "tailwindcss";
+
+@theme {
+  --color-netflix-red: #E50914;
+  --color-netflix-dark: #141414;
+  --color-netflix-black: #000000;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-serif-display: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --font-cursive: 'Dancing Script', 'Brush Script MT', cursive;
+  --font-handwritten: 'Caveat', 'Dancing Script', cursive;
+}
+
+body {
+  margin: 0;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar for cinematic look */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* -------------------------------------------------------------
+   Custom Media Queries for Responsive Perfection
+   Targeting Mobile (e.g., Nothing CMF Phone 1/2 Pro: 393x873)
+   and Laptop/Desktop Views
+   ------------------------------------------------------------- */
+
+/* Nothing CMF Phone 2 Pro & General Mobile (max-width: 480px) */
+@media screen and (max-width: 480px) {
+  /* Intro Animation responsiveness */
+  .center-container {
+    width: 200px !important;
+    height: 300px !important;
+  }
+  
+  /* Profile Selection centering and scaling */
+  .profile-title {
+    font-size: 2.2rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .profile-subtitle {
+    margin-bottom: 3.5rem !important;
+  }
+
+  .profile-card-container {
+    gap: 1.5rem !important;
+  }
+
+  .profile-card {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .profile-name {
+    font-size: 1rem !important;
+    margin-top: 0.75rem !important;
+  }
+
+  /* Hero Banner adjustment */
+  .hero-title {
+    font-size: 2.5rem !important; /* text-4xl equivalent */
+    line-height: 1.25 !important;
+  }
+
+  .hero-desc {
+    font-size: 0.95rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .hero-buttons {
+    gap: 0.75rem !important;
+  }
+
+  .hero-buttons button {
+    padding: 0.5rem 1.25rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* Content rows spacing */
+  .row-title {
+    font-size: 1.2rem !important;
+  }
+
+  .row-card {
+    width: 150px !important;
+  }
+}
+
+/* Specific heights matching CMF Phone 2 Pro ratio (max-height: 900px) */
+@media screen and (max-height: 900px) and (max-width: 480px) {
+  .hero-banner-container {
+    height: 70vh !important;
+  }
+  
+  .hero-content-wrapper {
+    padding-bottom: 5rem !important;
+  }
+}
+
+/* Nothing CMF Phone 2 Pro Viewport (393px x 873px) Precision Styling */
+@media screen and (min-width: 390px) and (max-width: 396px) and (min-height: 870px) and (max-height: 880px) {
+  /* Prevent horizontal/vertical layout shifting */
+  html, body {
+    width: 393px !important;
+    height: 873px !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+  }
+
+  /* Centered and scaled Intro animation */
+  .center-container {
+    width: 180px !important;
+    height: 270px !important;
+  }
+
+  /* Symmetrical Profile Selection Layout */
+  .profile-title {
+    font-size: 2.1rem !important;
+    letter-spacing: -0.01em !important;
+    margin-bottom: 0.5rem !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .profile-subtitle {
+    font-size: 0.72rem !important;
+    margin-bottom: 4.5rem !important;
+    text-align: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .profile-card-container {
+    gap: 1.8rem !important;
+    padding: 0 1rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .profile-card {
+    width: 125px !important;
+    height: 125px !important;
+    border-radius: 16px !important;
+  }
+
+  .profile-name {
+    font-size: 0.95rem !important;
+    margin-top: 0.8rem !important;
+    text-align: center !important;
+  }
+
+  /* Home Hero Banner Symmetry */
+  .hero-title {
+    font-size: 2.7rem !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .hero-desc {
+    font-size: 0.86rem !important;
+    line-height: 1.55 !important;
+    margin-bottom: 1.8rem !important;
+    color: #e4e4e7 !important;
+  }
+
+  /* More Info Panel (Widescreen Box adapted to 393x873 mobile view) */
+  .more-info-card {
+    margin: 12px !important;
+    padding: 1.25rem !important;
+    max-height: 94vh !important;
+    width: calc(100% - 24px) !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+    border-radius: 16px !important;
+  }
+
+  .more-info-banner {
+    height: 140px !important;
+  }
+
+  .more-info-card h2 {
+    font-size: 2.2rem !important;
+  }
+
+  .more-info-card h3 {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* 2x2 symmetrical grid of details for CMF 2 Pro screen */
+  .more-info-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+  }
+
+  .more-info-grid > div {
+    padding: 0.65rem !important;
+    border-radius: 10px !important;
+  }
+
+  .more-info-grid span {
+    font-size: 0.72rem !important;
+  }
+}
+
+/* Hide default cursor when custom sunflower cursor is active */
+.custom-cursor-active,
+.custom-cursor-active * {
+  cursor: none !important;
+}
+
+/* Shimmer loading skeleton effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* -------------------------------------------------------------
+   Memory Tree Cinematic Animations and Layouts
+   ------------------------------------------------------------- */
+
+/* Floating animations for SVGs & artifacts */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2.5deg);
+  }
+}
+
+@keyframes float-medium {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(-3deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(14px) rotate(-2deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 5s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 6.5s ease-in-out infinite;
+}
+
+/* Continuous Scroll Layout */
+.favorites-scroll-container {
+  overflow-y: auto;
+  height: 100vh;
+  width: 100%;
+  scrollbar-width: none;
+  scroll-behavior: auto;
+  position: relative;
+  z-index: 20;
+}
+
+.favorites-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.favorites-scroll-spacer {
+  height: 800vh; /* 8 pages of scroll range */
+  width: 100%;
+  pointer-events: none;
+}
+
+.favorites-overlay-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* Ghibli/Shinkai Sunset Background */
+.shinkai-sunset-bg {
+  background: linear-gradient(to bottom, #110e1a 0%, #22132e 35%, #4c2045 65%, #8c3e4f 85%, #cf635c 100%);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+/* Premium Glassmorphism Card System */
+.glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 15px 45px -10px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15),
+              inset 0 10px 20px -5px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  transition: border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-glow {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7),
+              0 0 35px rgba(255, 182, 193, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Gentle Drift Floating Keyframes */
+@keyframes float-drift {
+  0%, 100% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+.animate-float-drift {
+  animation: float-drift 5s ease-in-out infinite;
+}
+
+/* CRT Screen Effect for If Wishes Could Kill */
+.crt-container {
+  position: relative;
+  background: #060606;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,1);
+  overflow: hidden;
+}
+
+.crt-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.crt-screen::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+  z-index: 10;
+  background-size: 100% 6px, 8px 100%;
+  pointer-events: none;
+}
+
+.crt-screen::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: rgba(18, 16, 16, 0.1);
+  opacity: 0;
+  z-index: 11;
+  pointer-events: none;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.94; }
+  50% { opacity: 1; }
+  100% { opacity: 0.96; }
+}
+
+.animate-crt-flicker {
+  animation: crt-flicker 0.12s infinite;
+}
+
+/* TV Static Scanlines */
+@keyframes scroll-scanlines {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 100%;
+  }
+}
+
+.crt-scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.3)
+  );
+  background-size: 100% 8px;
+  animation: scroll-scanlines 20s linear infinite;
+}
+
+/* ===================================================================
+   FLOATING MEMORY ARTIFACT SYSTEM — Apple Vision Pro Inspired
+   =================================================================== */
+
+/* Breathing float keyframe */
+@keyframes memory-float {
+  0%, 100% {
+    transform: translateY(0px) rotateY(-3deg) rotateX(-1.5deg) scale(1.0);
+  }
+  25% {
+    transform: translateY(-8px) rotateY(2deg) rotateX(1deg) scale(1.015);
+  }
+  50% {
+    transform: translateY(-12px) rotateY(5deg) rotateX(2deg) scale(1.03);
+  }
+  75% {
+    transform: translateY(-5px) rotateY(-1deg) rotateX(-0.5deg) scale(1.01);
+  }
+}
+
+/* Premium Floating Glass Surface — Square 1:1 Layout */
+.memory-artifact {
+  /* Responsive sizing — 280px desktop, 240px tablet, 200px mobile */
+  width: 280px;
+  position: relative;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px) saturate(1.4);
+  -webkit-backdrop-filter: blur(30px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 20px 80px rgba(0, 0, 0, 0.35),
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  color: #fff;
+  animation: memory-float 10s ease-in-out infinite;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  perspective: 800px;
+}
+
+/* Stagger float animation per card */
+.memory-artifact:nth-child(1) { animation-delay: 0s; }
+.memory-artifact:nth-child(2) { animation-delay: -2s; }
+.memory-artifact:nth-child(3) { animation-delay: -4s; }
+.memory-artifact:nth-child(4) { animation-delay: -6s; }
+.memory-artifact:nth-child(5) { animation-delay: -8s; }
+
+/* Hover — Premium intensification */
+.memory-artifact:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 25px 90px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(255, 182, 193, 0.15),
+    0 0 80px rgba(255, 182, 193, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .memory-artifact {
+    width: 240px;
+    padding: 7px;
+    border-radius: 18px;
+  }
+}
+
+/* Mobile — primary target: CMF Phone 2 Pro 393×873 */
+@media (max-width: 640px) {
+  .memory-artifact {
+    width: 200px;
+    padding: 6px;
+    border-radius: 16px;
+  }
+}
+
+/* Art Panel — Square 1:1 with rounded corners */
+.memory-art-panel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.memory-art-panel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.12) contrast(1.05) brightness(1.02);
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.5s ease;
+}
+
+.memory-artifact:hover .memory-art-panel img {
+  transform: scale(1.04);
+  filter: saturate(1.2) contrast(1.08) brightness(1.05);
+}
+
+/* Cinematic vignette overlay */
+.memory-art-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Blossom pink grading overlay */
+.memory-art-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 182, 193, 0.1) 0%,
+    transparent 70%
+  );
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 1024px) {
+  .memory-art-panel {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .memory-art-panel {
+    border-radius: 12px;
+  }
+}
+
+/* Minimal title below artwork */
+.memory-artifact-title {
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 8px rgba(255, 182, 193, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  padding: 0 4px;
+  margin-top: 5px;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .memory-artifact-title {
+    font-size: 7px;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
+}
+
+/* --- Full-Screen Lightbox Overlay --- */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 3, 5, 0.4);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              backdrop-filter 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              -webkit-backdrop-filter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#lightbox.active {
+  opacity: 1;
+  pointer-events: auto;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 85%;
+  max-height: 85%;
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#lightbox.active .lightbox-content {
+  transform: scale(1) translateY(0);
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.95);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -45px;
+  right: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 36px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.lightbox-close:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* Grab cursor styles for the WebGL canvas */
+#webgl-container {
+  cursor: grab;
+}
+
+#webgl-container:active {
+  cursor: grabbing;
+}
+
+/* Custom 13-column grid for the guitar fretboard (Open string + 12 frets) */
+.grid-cols-13 {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+}
