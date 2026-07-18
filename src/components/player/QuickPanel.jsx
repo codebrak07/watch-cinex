@@ -66,7 +66,9 @@ export default function QuickPanel({
               {[
                 { id: 'vidsrc_to', label: 'Mirror 1 (vidsrc.pm)' },
                 { id: 'vidsrc_xyz', label: 'Mirror 2 (vidsrc.xyz)' },
-                { id: 'embed_su', label: 'Mirror 3 (embed.su)' }
+                { id: 'embed_su', label: 'Mirror 3 (embed.su)' },
+                { id: 'vidsrc_in', label: 'Mirror 4 (vidsrc.in)' },
+                { id: 'streamimdb', label: 'Mirror 5 (streamimdb.ru)' }
               ].map((prov, i) => (
                 <TVFocusable
                   key={prov.id}

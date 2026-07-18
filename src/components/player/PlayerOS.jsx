@@ -48,9 +48,9 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
   const [selectedSpeed, setSelectedSpeed] = useState(() => PersistenceEngine.getPreference('pref_speed', 1));
   const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('off_campus_provider') || 'vidsrc_to');
 
-  const isTvSeries = media.title === 'Off Campus' || media.url.includes('/tv/') || media.url.includes('media_type=tv');
+  const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
   const currentEpisode = parseInt(media.episode || (() => {
-    const match = media.url.match(/\/episode\/(\d+)/) || media.url.match(/\/1\/(\d+)/) || media.url.match(/episode=(\d+)/) || media.url.match(/\/273240\/1\/(\d+)/);
+    const match = media.url ? (media.url.match(/\/episode\/(\d+)/) || media.url.match(/\/1\/(\d+)/) || media.url.match(/episode=(\d+)/) || media.url.match(/\/273240\/1\/(\d+)/)) : null;
     return match ? match[1] : '1';
   })(), 10);
 
@@ -316,7 +316,7 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
     <div 
       onMouseMove={resetIdleTimer}
       onClick={resetIdleTimer}
-      className="relative w-full h-full md:aspect-video md:h-auto max-w-7xl bg-black md:rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.95)] border border-white/5 flex flex-col items-center justify-center"
+      className="relative w-full h-full md:aspect-video md:h-auto max-w-7xl bg-black md:rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.95)] border border-white/5"
     >
       {/* Dynamic Design / Theme Engine */}
       <ThemeEngine imageUrl={media.thumb || media.backdropPath} />
@@ -330,7 +330,7 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
 
 
       {/* Video element or Iframe Mirror */}
-      <div className="w-full h-full relative z-10">
+      <div className="absolute inset-0 z-10 bg-black">
         {isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-25 pointer-events-none">
             <Loader2 className="w-16 h-16 text-[#ff4d85] animate-spin mb-4" />
@@ -344,11 +344,20 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
               ref={localPlayerRef}
               key={`${media.url}_prov_${selectedProvider}`}
               src={(() => {
-                const isTv = media.url.includes('/tv/') || media.url.includes('media_type=tv');
+                const isTv = media.url ? (media.url.includes('/tv/') || media.url.includes('media_type=tv')) : false;
                 const isOffCampus = media.title === 'Off Campus';
-                const urlObj = media.url.includes('?') ? new URL(media.url) : null;
-                const tmdbIdParam = urlObj ? urlObj.searchParams.get('tmdb_id') : null;
-                const id = isOffCampus ? '273240' : (tmdbIdParam || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1] || '10625');
+                
+                let tmdbIdParam = null;
+                try {
+                  if (media.url && media.url.includes('?')) {
+                    const urlObj = new URL(media.url, window.location.origin);
+                    tmdbIdParam = urlObj.searchParams.get('tmdb_id');
+                  }
+                } catch (e) {
+                  console.warn(e);
+                }
+
+                const id = isOffCampus ? '273240' : (tmdbIdParam || (media.url && media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0]) || (media.url && media.url.split('/tv/')[1]) || '10625');
                 const startParam = currentTime ? `&start=${Math.floor(currentTime)}` : '';
                 
                 if (selectedProvider === 'vidsrc_to') {
@@ -359,8 +368,18 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
                   return (isTv || isOffCampus)
                     ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`
                     : `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
+                } else if (selectedProvider === 'embed_su') {
+                  return (isTv || isOffCampus)
+                    ? `https://embed.su/embed/tv/${id}/1/${currentEpisode}`
+                    : `https://embed.su/embed/movie/${id}`;
+                } else if (selectedProvider === 'vidsrc_in') {
+                  return (isTv || isOffCampus)
+                    ? `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
+                    : `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
+                } else if (selectedProvider === 'streamimdb') {
+                  return media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
                 }
-                return `https://embed.su/embed/${(isTv || isOffCampus) ? 'tv' : 'movie'}/${id}${isTv ? `/1/${currentEpisode}` : ''}`;
+                return media.url || '';
               })()}
               onLoad={() => setIsLoading(false)}
               className="w-full h-full border-0 bg-black"
