@@ -227,6 +227,36 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
     }
   };
 
+  const handleSkip = (sec) => {
+    if (adapterRef.current) {
+      const target = Math.max(0, Math.min(duration, currentTime + sec));
+      adapterRef.current.seek(target);
+    }
+  };
+
+  const handleRestart = () => {
+    if (adapterRef.current) {
+      adapterRef.current.seek(0);
+      adapterRef.current.play();
+    }
+  };
+
+  const handleSeek = (newTime) => {
+    if (adapterRef.current) {
+      adapterRef.current.seek(newTime);
+    }
+  };
+
+  const handleToggleFullscreen = () => {
+    const elem = localPlayerRef.current;
+    if (!elem) return;
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen?.().catch(err => console.warn(err));
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
   // Preference change triggers
   const handleSelectSub = (sub) => {
     setSelectedSub(sub);
