@@ -220,6 +220,13 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
     setDuration(video.duration);
   };
 
+  const handlePlayPause = () => {
+    if (adapterRef.current) {
+      if (isPlaying) adapterRef.current.pause();
+      else adapterRef.current.play();
+    }
+  };
+
   // Preference change triggers
   const handleSelectSub = (sub) => {
     setSelectedSub(sub);
