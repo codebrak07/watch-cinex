@@ -17,6 +17,14 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
+  // Migrate stale local storage provider values from vidsrc_to to streamimdb to prevent black screen loops
+  useEffect(() => {
+    const saved = localStorage.getItem('off_campus_provider');
+    if (!saved || saved === 'vidsrc_to') {
+      localStorage.setItem('off_campus_provider', 'streamimdb');
+    }
+  }, []);
+
   // Initialize currentTime from the localStorage cache
   const [currentTime, setCurrentTime] = useState(() => {
     const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
@@ -53,7 +61,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     const video = localPlayerRef.current;
     if (!video) return;
 
-    // Calculate time based on previous state to avoid enclosure scope issues
     setCurrentTime(prev => {
       const nextTime = Math.max(0, prev + sec);
       
