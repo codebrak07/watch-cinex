@@ -17,8 +17,16 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
-  // Initialize currentTime from the localStorage cache
-  const [currentTime, setCurrentTime] = useState(() => {
+  // Migrate stale local storage provider values from vidsrc_to to streamimdb to prevent black screen loops
+  useEffect(() => {
+    const saved = localStorage.getItem('off_campus_provider');
+    if (!saved) {
+      localStorage.setItem('off_campus_provider', 'streamimdb');
+    }
+  }, []);
+
+  // Retrieve initial saved timestamp from browser cache
+  const getInitialTime = () => {
     const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
     try {
       const saved = localStorage.getItem(key);
@@ -30,9 +38,15 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
       console.warn(e);
     }
     return 0;
-  });
+  };
 
-  // Keep simulated clock tick to allow skip calculations on iframes and save progress
+  // currentTime holds the ticking simulated timeline
+  const [currentTime, setCurrentTime] = useState(getInitialTime);
+  
+  // startOffsetTime only changes when player first loads or when a skip button is explicitly pressed
+  const [startOffsetTime, setStartOffsetTime] = useState(getInitialTime);
+
+  // Keep simulated clock ticking and saving progress in the background (does not reload iframe)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(prev => {
@@ -47,7 +61,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [media.url, mediaId, isTvSeries, currentEpisode]);
+  }, [mediaId, isTvSeries, currentEpisode]);
 
   const handleEpisodeChange = (epVal) => {
     let newUrl = media.url;
@@ -67,6 +81,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     }
 
     setCurrentTime(0);
+    setStartOffsetTime(0);
     if (onMediaUpdate) {
       onMediaUpdate({
         ...media,
@@ -80,67 +95,16 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     const video = localPlayerRef.current;
     if (!video) return;
 
-    setCurrentTime(prev => {
-      const nextTime = Math.max(0, prev + sec);
-      
-      const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
-      try {
-        localStorage.setItem(key, JSON.stringify({ time: nextTime, duration: 3600, ts: Date.now() }));
-      } catch (e) {
-        console.warn(e);
-      }
+    const nextTime = Math.max(0, currentTime + sec);
+    setCurrentTime(nextTime);
+    setStartOffsetTime(nextTime); // This triggers the iframe URL to reload at the new time offset
 
-      if (video instanceof HTMLIFrameElement) {
-        const isTv = media.url ? (media.url.includes('/tv/') || media.url.includes('media_type=tv')) : false;
-        const isOffCampus = media.title === 'Off Campus';
-        
-        let tmdbIdParam = null;
-        try {
-          if (media.url && media.url.includes('?')) {
-            const urlObj = new URL(media.url, window.location.origin);
-            tmdbIdParam = urlObj.searchParams.get('tmdb_id');
-          }
-        } catch (e) {
-          console.warn(e);
-        }
-
-        const id = isOffCampus ? '273240' : (tmdbIdParam || (media.url && media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0]) || (media.url && media.url.split('/tv/')[1]) || '10625');
-        const provider = window.localStorage.getItem('off_campus_provider') || 'streamimdb';
-        const startParam = nextTime ? `&start=${Math.floor(nextTime)}` : '';
-
-        let targetUrl = '';
-        if (provider === 'vidsrc_to') {
-          targetUrl = (isTv || isOffCampus)
-            ? `https://vidsrc.to/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
-            : `https://vidsrc.to/embed/movie/${id}?autoplay=1${startParam}`;
-        } else if (provider === 'vidsrc_xyz') {
-          targetUrl = (isTv || isOffCampus)
-            ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`
-            : `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
-        } else if (provider === 'embed_su') {
-          const base = (isTv || isOffCampus)
-            ? `https://embed.su/embed/tv/${id}/1/${currentEpisode}`
-            : `https://embed.su/embed/movie/${id}`;
-          targetUrl = `${base}?start=${Math.floor(nextTime)}`;
-        } else if (provider === 'vidsrc_in') {
-          targetUrl = (isTv || isOffCampus)
-            ? `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
-            : `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
-        } else if (provider === 'streamimdb') {
-          const base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
-          const separator = base.includes('?') ? '&' : '?';
-          targetUrl = base ? `${base}${separator}start=${Math.floor(nextTime)}` : '';
-        } else {
-          const separator = media.url?.includes('?') ? '&' : '?';
-          targetUrl = media.url ? `${media.url}${separator}start=${Math.floor(nextTime)}` : '';
-        }
-        video.src = targetUrl;
-      } else {
-        video.currentTime = nextTime;
-      }
-      
-      return nextTime;
-    });
+    const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+    try {
+      localStorage.setItem(key, JSON.stringify({ time: nextTime, duration: 3600, ts: Date.now() }));
+    } catch (e) {
+      console.warn(e);
+    }
   };
 
   const toggleFullscreen = () => {
@@ -170,7 +134,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [media.url]);
+  }, [currentTime]); // Depend on currentTime to calculate skips accurately
 
   const modalContent = (
     <motion.div
@@ -202,7 +166,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
             >
-              <option value="vidsrc_to">Mirror 1 (vidsrc.to)</option>
+              <option value="vidsrc_to">Mirror 1 (vidsrc.pm)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
               <option value="embed_su">Mirror 3 (embed.su)</option>
               <option value="vidsrc_in">Mirror 4 (vidsrc.in)</option>
@@ -306,13 +270,13 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
                 const id = isOffCampus ? '273240' : (tmdbIdParam || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1] || '10625');
                 const provider = window.localStorage.getItem('off_campus_provider') || 'streamimdb';
-                const startParam = currentTime ? `&start=${Math.floor(currentTime)}` : '';
+                const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
                 if (provider === 'vidsrc_to') {
                   if (isTv || isOffCampus) {
-                    return `https://vidsrc.to/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
+                    return `https://vidsrc.pm/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
                   }
-                  return `https://vidsrc.to/embed/movie/${id}?autoplay=1${startParam}`;
+                  return `https://vidsrc.pm/embed/movie/${id}?autoplay=1${startParam}`;
                 } else if (provider === 'vidsrc_xyz') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`;
@@ -320,9 +284,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   return `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
                 } else if (provider === 'embed_su') {
                   if (isTv || isOffCampus) {
-                    return `https://embed.su/embed/tv/${id}/1/${currentEpisode}?start=${Math.floor(currentTime)}`;
+                    return `https://embed.su/embed/tv/${id}/1/${currentEpisode}?start=${Math.floor(startOffsetTime)}`;
                   }
-                  return `https://embed.su/embed/movie/${id}?start=${Math.floor(currentTime)}`;
+                  return `https://embed.su/embed/movie/${id}?start=${Math.floor(startOffsetTime)}`;
                 } else if (provider === 'vidsrc_in') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
@@ -332,7 +296,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 
                 const base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
                 const separator = base.includes('?') ? '&' : '?';
-                return base ? `${base}${separator}start=${Math.floor(currentTime)}` : '';
+                return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
               })()}
               className="w-full h-full border-0 bg-black"
               allow="autoplay; encrypted-media; picture-in-picture"
