@@ -17,11 +17,11 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
-  // Force default provider to vidsrc_to on mount
+  // Force default provider to vidsrc_pm on mount
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    if (saved !== 'vidsrc_to') {
-      localStorage.setItem('off_campus_provider', 'vidsrc_to');
+    if (saved !== 'vidsrc_pm') {
+      localStorage.setItem('off_campus_provider', 'vidsrc_pm');
     }
   }, []);
 
@@ -157,7 +157,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         {(media.title === 'Off Campus' || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
-              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_to'}
+              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}
               onChange={(e) => {
                 const provVal = e.target.value;
                 window.localStorage.setItem('off_campus_provider', provVal);
@@ -171,7 +171,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
             >
-              <option value="vidsrc_to">Mirror 1 (vidsrc.pm)</option>
+              <option value="vidsrc_pm">Mirror 1 (vidsrc.pm)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
               <option value="embed_su">Mirror 3 (embed.su)</option>
               <option value="vidsrc_in">Mirror 4 (vidsrc.in)</option>
@@ -249,10 +249,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 }
 
                 const id = isOffCampus ? '273240' : (tmdbIdParam || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1] || '10625');
-                const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_to';
+                const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm';
                 const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
-                if (provider === 'vidsrc_to') {
+                if (provider === 'vidsrc_pm') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.pm/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
                   }
