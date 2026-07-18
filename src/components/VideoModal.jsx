@@ -10,23 +10,47 @@ const HOVER_EASE = [0.25, 1, 0.5, 1];
 export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpdate }) {
   const containerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const { videoPlayerRef, sendSyncEvent, isSyncTriggeredRef, isHost } = useJam() || {};
   const localPlayerRef = useRef(null);
 
+  const mediaId = media.tmdbId || media.id || '99999';
   const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
   const currentEpisode = parseInt(media.episode || (() => {
     const match = media.url ? (media.url.match(/\/episode\/(\d+)/) || media.url.match(/\/1\/(\d+)/) || media.url.match(/episode=(\d+)/) || media.url.match(/\/273240\/1\/(\d+)/)) : null;
     return match ? match[1] : '1';
   })(), 10);
 
-  // Keep simulated clock tick to allow skip calculations on iframes
+  // Initialize currentTime from the localStorage cache
+  const [currentTime, setCurrentTime] = useState(() => {
+    const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.time || 0;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+    return 0;
+  });
+
+  // Keep simulated clock tick to allow skip calculations on iframes and save progress
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(prev => prev + 1);
+      setCurrentTime(prev => {
+        const next = prev + 1;
+        const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+        try {
+          localStorage.setItem(key, JSON.stringify({ time: next, duration: 3600, ts: Date.now() }));
+        } catch (e) {
+          console.warn(e);
+        }
+        return next;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [media.url]);
+  }, [media.url, mediaId, isTvSeries, currentEpisode]);
 
   const handleEpisodeChange = (epVal) => {
     let newUrl = media.url;
@@ -61,10 +85,18 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
     const video = localPlayerRef.current;
     if (!video) return;
 
-    if (video instanceof HTMLIFrameElement) {
-      const nextTime = Math.max(0, currentTime + sec);
-      setCurrentTime(nextTime);
+    const nextTime = Math.max(0, currentTime + sec);
+    setCurrentTime(nextTime);
 
+    // Save the new skip coordinates immediately to cache
+    const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+    try {
+      localStorage.setItem(key, JSON.stringify({ time: nextTime, duration: 3600, ts: Date.now() }));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    if (video instanceof HTMLIFrameElement) {
       const isTv = media.url ? (media.url.includes('/tv/') || media.url.includes('media_type=tv')) : false;
       const isOffCampus = media.title === 'Off Campus';
       
@@ -92,21 +124,25 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
           ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`
           : `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
       } else if (provider === 'embed_su') {
-        targetUrl = (isTv || isOffCampus)
+        const base = (isTv || isOffCampus)
           ? `https://embed.su/embed/tv/${id}/1/${currentEpisode}`
           : `https://embed.su/embed/movie/${id}`;
+        targetUrl = `${base}?start=${Math.floor(nextTime)}`;
       } else if (provider === 'vidsrc_in') {
         targetUrl = (isTv || isOffCampus)
           ? `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
           : `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
       } else if (provider === 'streamimdb') {
-        targetUrl = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
+        const base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
+        const separator = base.includes('?') ? '&' : '?';
+        targetUrl = base ? `${base}${separator}start=${Math.floor(nextTime)}` : '';
       } else {
-        targetUrl = media.url || '';
+        const separator = media.url?.includes('?') ? '&' : '?';
+        targetUrl = media.url ? `${media.url}${separator}start=${Math.floor(nextTime)}` : '';
       }
       video.src = targetUrl;
     } else {
-      video.currentTime = Math.max(0, Math.min(video.duration || 3600, video.currentTime + sec));
+      video.currentTime = nextTime;
     }
   };
 
@@ -135,7 +171,7 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
         ref={containerRef}
         className="relative w-full max-w-6xl aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10"
       >
-        {/* Episode/Season & Mirror Selector Dropdowns */}
+        {/* Episode/Season & Mirror Selector Dropdowns (Top-Left) */}
         {(media.title === 'Off Campus' || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
@@ -153,7 +189,7 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
                   });
                 }
               }}
-              className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
+              className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer animate-fade-in"
             >
               <option value="vidsrc_to">Mirror 1 (vidsrc.pm)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
@@ -186,30 +222,8 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
           </div>
         )}
 
-        {/* Controls Overlay */}
+        {/* Floating Top-Right Standard Options */}
         <div className="absolute top-4 right-4 flex gap-2.5 z-50 pointer-events-auto">
-          {/* 10s Rewind Button */}
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => handleSkip(-10)}
-            className="text-white/70 hover:text-white transition-colors bg-black/60 p-2 rounded-full cursor-pointer flex items-center justify-center border border-white/10"
-            title="Rewind 10s"
-          >
-            <ChevronLeft size={18} />
-          </motion.button>
-
-          {/* 10s Forward Button */}
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => handleSkip(10)}
-            className="text-white/70 hover:text-white transition-colors bg-black/60 p-2 rounded-full cursor-pointer flex items-center justify-center border border-white/10"
-            title="Forward 10s"
-          >
-            <ChevronRight size={18} />
-          </motion.button>
-
           <motion.button 
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -229,6 +243,31 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
           >
             <X size={18} />
           </motion.button>
+        </div>
+
+        {/* Floating Skip Controls at the Bottom-Center (Above Native HUD) */}
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-3 z-50 pointer-events-auto bg-black/75 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.6)]">
+          {/* Skip Backward Button */}
+          <button 
+            onClick={() => handleSkip(-10)}
+            className="text-white/80 hover:text-white transition-colors px-3 py-1 rounded-full hover:bg-white/10 flex items-center gap-1 cursor-pointer font-mono text-xs uppercase"
+            title="Rewind 10s"
+          >
+            <ChevronLeft size={16} className="text-[#ff4d85]" />
+            <span>10s</span>
+          </button>
+
+          <div className="w-[1px] h-4 bg-white/20" />
+
+          {/* Skip Forward Button */}
+          <button 
+            onClick={() => handleSkip(10)}
+            className="text-white/80 hover:text-white transition-colors px-3 py-1 rounded-full hover:bg-white/10 flex items-center gap-1 cursor-pointer font-mono text-xs uppercase"
+            title="Forward 10s"
+          >
+            <span>10s</span>
+            <ChevronRight size={16} className="text-[#ff4d85]" />
+          </button>
         </div>
 
         {isLoading && (
@@ -277,9 +316,9 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
                   return `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
                 } else if (provider === 'embed_su') {
                   if (isTv || isOffCampus) {
-                    return `https://embed.su/embed/tv/${id}/1/${currentEpisode}`;
+                    return `https://embed.su/embed/tv/${id}/1/${currentEpisode}?start=${Math.floor(currentTime)}`;
                   }
-                  return `https://embed.su/embed/movie/${id}`;
+                  return `https://embed.su/embed/movie/${id}?start=${Math.floor(currentTime)}`;
                 } else if (provider === 'vidsrc_in') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
@@ -287,7 +326,9 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
                   return `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
                 }
                 
-                return media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/');
+                const base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
+                const separator = base.includes('?') ? '&' : '?';
+                return base ? `${base}${separator}start=${Math.floor(currentTime)}` : '';
               })()}
               onLoad={() => setIsLoading(false)}
               className="w-full h-full border-0 bg-black"
@@ -319,7 +360,7 @@ export default function VideoModal({ media, onClose, onMainVideoEnd, onMediaUpda
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleEpisodeChange((currentEpisode + 1).toString())}
-            className="absolute bottom-28 right-8 z-50 bg-black/75 hover:bg-black/90 backdrop-blur-md text-white border border-white/20 px-6 py-3.5 rounded-lg shadow-[0_10px_35px_rgba(0,0,0,0.5)] cursor-pointer flex items-center gap-2 font-mono tracking-widest text-xs uppercase"
+            className="absolute bottom-28 right-8 z-50 bg-black/75 hover:bg-black/90 backdrop-blur-sm text-white border border-white/20 px-6 py-3.5 rounded-lg shadow-[0_10px_35px_rgba(0,0,0,0.5)] cursor-pointer flex items-center gap-2 font-mono tracking-widest text-xs uppercase"
           >
             <span>Next Episode {currentEpisode + 1}</span>
             <ChevronRight size={16} className="text-[#ff4d85]" />
