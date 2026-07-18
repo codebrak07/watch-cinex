@@ -17,11 +17,11 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
-  // Migrate stale local storage provider values from vidsrc_to to streamimdb to prevent black screen loops
+  // Set default provider value to vidsrc_to
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
     if (!saved) {
-      localStorage.setItem('off_campus_provider', 'streamimdb');
+      localStorage.setItem('off_campus_provider', 'vidsrc_to');
     }
   }, []);
 
@@ -157,7 +157,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         {(media.title === 'Off Campus' || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
-              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'streamimdb'}
+              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_to'}
               onChange={(e) => {
                 const provVal = e.target.value;
                 window.localStorage.setItem('off_campus_provider', provVal);
@@ -249,7 +249,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 }
 
                 const id = isOffCampus ? '273240' : (tmdbIdParam || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1] || '10625');
-                const provider = window.localStorage.getItem('off_campus_provider') || 'streamimdb';
+                const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_to';
                 const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
                 if (provider === 'vidsrc_to') {
