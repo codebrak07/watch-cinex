@@ -8,6 +8,7 @@ const HOVER_EASE = [0.25, 1, 0.5, 1];
 
 export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const containerRef = useRef(null);
+  const localPlayerRef = useRef(null);
 
   const mediaId = media.tmdbId || media.id || '99999';
   const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
@@ -44,6 +45,20 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   
   // startOffsetTime only changes when player first loads (keeps iframe src static)
   const [startOffsetTime] = useState(getInitialTime);
+
+  // Focus the iframe automatically on mount/load so native arrow keys go directly to the player
+  useEffect(() => {
+    const focusTimer = setTimeout(() => {
+      if (localPlayerRef.current) {
+        try {
+          localPlayerRef.current.focus();
+        } catch (e) {
+          console.warn('Iframe focus failed:', e);
+        }
+      }
+    }, 1200);
+    return () => clearTimeout(focusTimer);
+  }, [media.url]);
 
   // Keep simulated clock ticking and saving progress in the background (does not reload iframe)
   useEffect(() => {
@@ -102,11 +117,23 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     }
   };
 
-  // Keyboard shortcut listeners (Escape, Backspace to exit)
+  // Keyboard shortcut listeners
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const video = localPlayerRef.current;
+      
       if (e.key === 'Escape' || e.key === 'Backspace') {
         onClose();
+      } else if (e.key === 'ArrowLeft') {
+        // Only seek local HTML5 video directly, let iframe handle its native keys if focused
+        if (video && !(video instanceof HTMLIFrameElement)) {
+          video.currentTime = Math.max(0, video.currentTime - 10);
+        }
+      } else if (e.key === 'ArrowRight') {
+        // Only seek local HTML5 video directly, let iframe handle its native keys if focused
+        if (video && !(video instanceof HTMLIFrameElement)) {
+          video.currentTime = Math.min(video.duration || 3600, video.currentTime + 10);
+        }
       }
     };
 
@@ -201,6 +228,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         {media.type === 'video' ? (
           (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode'))) ? (
             <iframe 
+              ref={localPlayerRef}
               key={media.url}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
@@ -256,6 +284,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             />
           ) : (
             <video
+              ref={localPlayerRef}
               src={media.url}
               controls
               autoPlay
