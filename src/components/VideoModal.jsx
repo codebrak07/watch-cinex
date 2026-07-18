@@ -17,10 +17,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
-  // Set default provider value to vidsrc_to
+  // Force default provider to vidsrc_to on mount
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    if (!saved) {
+    if (saved !== 'vidsrc_to') {
       localStorage.setItem('off_campus_provider', 'vidsrc_to');
     }
   }, []);
