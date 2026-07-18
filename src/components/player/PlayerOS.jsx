@@ -21,7 +21,6 @@ import { useTVFocus } from './TVFocusEngine';
 // Components
 import ThemeEngine from './ThemeEngine';
 import NotificationEngine from './NotificationEngine';
-import ResumeManager from './ResumeManager';
 import TVOverlay from './TVOverlay';
 import QuickPanel from './QuickPanel';
 import DeveloperTools from './DeveloperTools';
@@ -60,6 +59,7 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
   // Kernel Service Injection & Lifecycle Bootstrapping
   useEffect(() => {
     // 1. Service registration
+    lifecycle.reset();
     kernel.register('bus', bus);
     kernel.register('lifecycle', lifecycle);
     kernel.register('capability', CapabilityDetector);
@@ -74,18 +74,14 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
 
     // 2. Evaluate Resume State
     const resumeInfo = ResumeEngine.evaluate(mediaId, isTvSeries ? currentEpisode : null);
-    if (resumeInfo.showLanding) {
-      setOverlayState('resume');
+    if (resumeInfo.startTime > 0) {
       setCurrentTime(resumeInfo.startTime);
       setDuration(resumeInfo.duration || 3600);
-      lockFocusGroup('resume');
-      lifecycle.transition(LIFECYCLE_STATES.READY);
-    } else {
-      setOverlayState('playing-active');
-      setIsPlaying(true);
-      lockFocusGroup('player-controls');
-      lifecycle.transition(LIFECYCLE_STATES.PLAYING);
     }
+    setOverlayState('playing-active');
+    setIsPlaying(true);
+    lockFocusGroup('player-controls');
+    lifecycle.transition(LIFECYCLE_STATES.PLAYING);
 
     // 3. EventBus subscriptions
     const unsubPlay = bus.on(EVENTS.PLAYER_PLAY, () => {
@@ -121,12 +117,8 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
         setOverlayState('playing-active');
         unlockFocusGroup('player-controls');
         changeFocus('btn-settings');
-      } else if (overlayState === 'resume') {
-        onClose();
       } else {
-        setOverlayState('resume');
-        lockFocusGroup('resume');
-        lifecycle.transition(LIFECYCLE_STATES.READY);
+        onClose();
       }
     });
 
@@ -335,31 +327,7 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
       {/* Queue-based Notification Engine */}
       <NotificationEngine />
 
-      {/* Resume Screen overlay */}
-      <AnimatePresence>
-        {overlayState === 'resume' && (
-          <ResumeManager
-            media={media}
-            savedTime={currentTime}
-            duration={duration}
-            isTvSeries={isTvSeries}
-            currentEpisode={currentEpisode}
-            onResume={(time) => {
-              setOverlayState('playing-active');
-              setIsPlaying(true);
-              unlockFocusGroup('player-controls');
-              if (time > 0 && adapterRef.current) adapterRef.current.seek(time);
-            }}
-            onRestart={() => {
-              setOverlayState('playing-active');
-              setIsPlaying(true);
-              unlockFocusGroup('player-controls');
-              if (adapterRef.current) adapterRef.current.seek(0);
-            }}
-            onClose={onClose}
-          />
-        )}
-      </AnimatePresence>
+
 
       {/* Video element or Iframe Mirror */}
       <div className="w-full h-full relative z-10">

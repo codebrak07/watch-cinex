@@ -52,6 +52,11 @@ export class LifecycleManager {
     this.transition(LIFECYCLE_STATES.DESTROYED);
     this.listeners = [];
   }
+
+  reset() {
+    this.state = LIFECYCLE_STATES.BOOT;
+    this.listeners = [];
+  }
 }
 
 export const lifecycle = new LifecycleManager();
