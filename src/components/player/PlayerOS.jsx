@@ -46,7 +46,7 @@ export default function PlayerOS({ media, onClose, onMediaUpdate }) {
   const [selectedAudio, setSelectedAudio] = useState(() => PersistenceEngine.getPreference('pref_audio', 'English (Original)'));
   const [selectedQuality, setSelectedQuality] = useState(() => PersistenceEngine.getPreference('pref_quality', 'Auto (1080p)'));
   const [selectedSpeed, setSelectedSpeed] = useState(() => PersistenceEngine.getPreference('pref_speed', 1));
-  const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('off_campus_provider') || 'vidsrc_to');
+  const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('off_campus_provider') || 'streamimdb');
 
   const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
   const currentEpisode = parseInt(media.episode || (() => {

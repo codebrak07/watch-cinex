@@ -13,6 +13,16 @@ export class PlaybackAdapter {
   play() {
     if (this.type === 'html5' && this.ref.current) {
       this.ref.current.play().catch(e => console.warn('HTML5 play failed:', e));
+    } else if (this.type === 'iframe' && this.ref.current) {
+      // Best-effort postMessage triggers for third-party player hooks
+      try {
+        const win = this.ref.current.contentWindow;
+        win?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo' }), '*');
+        win?.postMessage(JSON.stringify({ method: 'play' }), '*');
+        win?.postMessage(JSON.stringify({ value: 'play', method: 'play' }), '*');
+      } catch (e) {
+        console.warn(e);
+      }
     }
     bus.emit(EVENTS.PLAYER_PLAY);
   }
@@ -20,6 +30,15 @@ export class PlaybackAdapter {
   pause() {
     if (this.type === 'html5' && this.ref.current) {
       this.ref.current.pause();
+    } else if (this.type === 'iframe' && this.ref.current) {
+      try {
+        const win = this.ref.current.contentWindow;
+        win?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo' }), '*');
+        win?.postMessage(JSON.stringify({ method: 'pause' }), '*');
+        win?.postMessage(JSON.stringify({ value: 'pause', method: 'pause' }), '*');
+      } catch (e) {
+        console.warn(e);
+      }
     }
     bus.emit(EVENTS.PLAYER_PAUSE);
   }
