@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Maximize, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Maximize, ChevronRight } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -8,7 +8,6 @@ const HOVER_EASE = [0.25, 1, 0.5, 1];
 
 export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const containerRef = useRef(null);
-  const localPlayerRef = useRef(null);
 
   const mediaId = media.tmdbId || media.id || '99999';
   const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
@@ -43,8 +42,8 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   // currentTime holds the ticking simulated timeline
   const [currentTime, setCurrentTime] = useState(getInitialTime);
   
-  // startOffsetTime only changes when player first loads or when a skip button is explicitly pressed
-  const [startOffsetTime, setStartOffsetTime] = useState(getInitialTime);
+  // startOffsetTime only changes when player first loads (keeps iframe src static)
+  const [startOffsetTime] = useState(getInitialTime);
 
   // Keep simulated clock ticking and saving progress in the background (does not reload iframe)
   useEffect(() => {
@@ -81,29 +80,12 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     }
 
     setCurrentTime(0);
-    setStartOffsetTime(0);
     if (onMediaUpdate) {
       onMediaUpdate({
         ...media,
         url: newUrl,
         episode: epVal
       });
-    }
-  };
-
-  const handleSkip = (sec) => {
-    const video = localPlayerRef.current;
-    if (!video) return;
-
-    const nextTime = Math.max(0, currentTime + sec);
-    setCurrentTime(nextTime);
-    setStartOffsetTime(nextTime); // This triggers the iframe URL to reload at the new time offset
-
-    const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
-    try {
-      localStorage.setItem(key, JSON.stringify({ time: nextTime, duration: 3600, ts: Date.now() }));
-    } catch (e) {
-      console.warn(e);
     }
   };
 
@@ -120,21 +102,17 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     }
   };
 
-  // Keyboard shortcut listeners (Arrow Keys, Escape, Backspace)
+  // Keyboard shortcut listeners (Escape, Backspace to exit)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Backspace') {
         onClose();
-      } else if (e.key === 'ArrowLeft') {
-        handleSkip(-10);
-      } else if (e.key === 'ArrowRight') {
-        handleSkip(10);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTime]); // Depend on currentTime to calculate skips accurately
+  }, []);
 
   const modalContent = (
     <motion.div
@@ -220,35 +198,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
           </motion.button>
         </div>
 
-        {/* Floating Skip Controls at the Bottom-Center (Above Native HUD) */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-3 z-50 pointer-events-auto bg-black/75 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.6)]">
-          {/* Skip Backward Button */}
-          <button 
-            onClick={() => handleSkip(-10)}
-            className="text-white/80 hover:text-white transition-colors px-3 py-1 rounded-full hover:bg-white/10 flex items-center gap-1 cursor-pointer font-mono text-xs uppercase"
-            title="Rewind 10s"
-          >
-            <ChevronLeft size={16} className="text-[#ff4d85]" />
-            <span>10s</span>
-          </button>
-
-          <div className="w-[1px] h-4 bg-white/20" />
-
-          {/* Skip Forward Button */}
-          <button 
-            onClick={() => handleSkip(10)}
-            className="text-white/80 hover:text-white transition-colors px-3 py-1 rounded-full hover:bg-white/10 flex items-center gap-1 cursor-pointer font-mono text-xs uppercase"
-            title="Forward 10s"
-          >
-            <span>10s</span>
-            <ChevronRight size={16} className="text-[#ff4d85]" />
-          </button>
-        </div>
-
         {media.type === 'video' ? (
           (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode'))) ? (
             <iframe 
-              ref={localPlayerRef}
               key={media.url}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
@@ -304,7 +256,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             />
           ) : (
             <video
-              ref={localPlayerRef}
               src={media.url}
               controls
               autoPlay
