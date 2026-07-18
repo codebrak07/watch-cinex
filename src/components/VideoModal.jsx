@@ -17,14 +17,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10);
 
-  // Migrate stale local storage provider values from vidsrc_to to streamimdb to prevent black screen loops
-  useEffect(() => {
-    const saved = localStorage.getItem('off_campus_provider');
-    if (!saved || saved === 'vidsrc_to') {
-      localStorage.setItem('off_campus_provider', 'streamimdb');
-    }
-  }, []);
-
   // Initialize currentTime from the localStorage cache
   const [currentTime, setCurrentTime] = useState(() => {
     const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
@@ -119,8 +111,8 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         let targetUrl = '';
         if (provider === 'vidsrc_to') {
           targetUrl = (isTv || isOffCampus)
-            ? `https://vidsrc.pm/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
-            : `https://vidsrc.pm/embed/movie/${id}?autoplay=1${startParam}`;
+            ? `https://vidsrc.to/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`
+            : `https://vidsrc.to/embed/movie/${id}?autoplay=1${startParam}`;
         } else if (provider === 'vidsrc_xyz') {
           targetUrl = (isTv || isOffCampus)
             ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`
@@ -210,7 +202,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
             >
-              <option value="vidsrc_to">Mirror 1 (vidsrc.pm)</option>
+              <option value="vidsrc_to">Mirror 1 (vidsrc.to)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
               <option value="embed_su">Mirror 3 (embed.su)</option>
               <option value="vidsrc_in">Mirror 4 (vidsrc.in)</option>
@@ -318,9 +310,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 
                 if (provider === 'vidsrc_to') {
                   if (isTv || isOffCampus) {
-                    return `https://vidsrc.pm/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
+                    return `https://vidsrc.to/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
                   }
-                  return `https://vidsrc.pm/embed/movie/${id}?autoplay=1${startParam}`;
+                  return `https://vidsrc.to/embed/movie/${id}?autoplay=1${startParam}`;
                 } else if (provider === 'vidsrc_xyz') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`;
