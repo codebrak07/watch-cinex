@@ -1240,6 +1240,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               mediaType: selectedSearchResult.media_type,
                               season: '1',
                               episode: '1',
+                              numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                               provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
                             });
                           }
@@ -1341,6 +1342,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                                   mediaType: selectedSearchResult.media_type,
                                   season: '1',
                                   episode: '1',
+                                  numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                                   provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
                                 });
                               }}

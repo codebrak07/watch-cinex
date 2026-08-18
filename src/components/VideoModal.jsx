@@ -11,11 +11,32 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const localPlayerRef = useRef(null);
 
   const mediaId = media.tmdbId || media.id || '99999';
-  const isTvSeries = media.title === 'Off Campus' || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
-  const currentEpisode = parseInt(media.episode || (() => {
-    const match = media.url ? (media.url.match(/\/episode\/(\d+)/) || media.url.match(/\/1\/(\d+)/) || media.url.match(/episode=(\d+)/) || media.url.match(/\/273240\/1\/(\d+)/)) : null;
+  const isTvSeries = media.title === 'Off Campus' || 
+                     media.mediaType === 'tv' || 
+                     media.media_type === 'tv' || 
+                     (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv') || media.url.includes('/embed/tv/')));
+
+  const currentSeason = parseInt(media.season || (() => {
+    if (!media.url) return '1';
+    const match = media.url.match(/\/season\/(\d+)/) || 
+                  media.url.match(/season=(\d+)/) || 
+                  media.url.match(/\/embed\/tv\/[^/]+\/(\d+)\//) || 
+                  media.url.match(/\/tv\/[^/]+\/(\d+)\//);
     return match ? match[1] : '1';
-  })(), 10);
+  })(), 10) || 1;
+
+  const currentEpisode = parseInt(media.episode || (() => {
+    if (!media.url) return '1';
+    const match = media.url.match(/\/episode\/(\d+)/) || 
+                  media.url.match(/episode=(\d+)/) || 
+                  media.url.match(/\/embed\/tv\/[^/]+\/\d+\/(\d+)/) || 
+                  media.url.match(/\/tv\/[^/]+\/\d+\/(\d+)/) ||
+                  media.url.match(/\/1\/(\d+)/) ||
+                  media.url.match(/\/273240\/\d+\/(\d+)/);
+    return match ? match[1] : '1';
+  })(), 10) || 1;
+
+  const totalSeasons = Math.max(1, media.numberOfSeasons || media.totalSeasons || 10);
 
   // Force default provider to vidsrc_pm on mount
   useEffect(() => {
@@ -27,7 +48,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
   // Retrieve initial saved timestamp from browser cache
   const getInitialTime = () => {
-    const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+    const key = isTvSeries ? `pos_${mediaId}_s_${currentSeason}_ep_${currentEpisode}` : `pos_${mediaId}`;
     try {
       const saved = localStorage.getItem(key);
       if (saved) {
@@ -65,7 +86,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     const interval = setInterval(() => {
       setCurrentTime(prev => {
         const next = prev + 1;
-        const key = isTvSeries ? `pos_${mediaId}_ep_${currentEpisode}` : `pos_${mediaId}`;
+        const key = isTvSeries ? `pos_${mediaId}_s_${currentSeason}_ep_${currentEpisode}` : `pos_${mediaId}`;
         try {
           localStorage.setItem(key, JSON.stringify({ time: next, duration: 3600, ts: Date.now() }));
         } catch (e) {
@@ -75,22 +96,28 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [mediaId, isTvSeries, currentEpisode]);
+  }, [mediaId, isTvSeries, currentSeason, currentEpisode]);
 
-  const handleEpisodeChange = (epVal) => {
-    let newUrl = media.url;
-    if (media.url.includes('off-campus') || media.url.includes('273240')) {
-      newUrl = `https://vidsrc.sbs/embed/tv/273240/1/${epVal}`;
-    } else if (media.url.includes('/episode/')) {
-      newUrl = media.url.replace(/\/episode\/\d+/, `/episode/${epVal}`);
-    } else if (media.url.includes('/1/')) {
-      newUrl = media.url.replace(/\/1\/\d+/, `/1/${epVal}`);
-    } else {
-      if (media.url.includes('?')) {
-        const [base, query] = media.url.split('?');
-        newUrl = `${base}/episode/${epVal}?${query}`;
+  const handleSeasonChange = (seasonVal) => {
+    const sVal = parseInt(seasonVal, 10);
+    const epVal = 1;
+    let newUrl = media.url || '';
+    
+    if (newUrl.includes('off-campus') || newUrl.includes('273240')) {
+      newUrl = `https://vidsrc.sbs/embed/tv/273240/${sVal}/${epVal}`;
+    } else if (newUrl.includes('/season/')) {
+      newUrl = newUrl.replace(/\/season\/\d+/, `/season/${sVal}`).replace(/\/episode\/\d+/, `/episode/${epVal}`);
+    } else if (newUrl.includes('season=')) {
+      newUrl = newUrl.replace(/season=\d+/, `season=${sVal}`).replace(/episode=\d+/, `episode=${epVal}`);
+    } else if (newUrl.match(/\/tv\/([^/]+)\/\d+\/\d+/)) {
+      newUrl = newUrl.replace(/\/tv\/([^/]+)\/\d+\/\d+/, `/tv/$1/${sVal}/${epVal}`);
+    } else if (newUrl.includes('/embed/')) {
+      if (newUrl.includes('?')) {
+        const [base, query] = newUrl.split('?');
+        const cleanQuery = query.split('&').filter(p => !p.startsWith('season=') && !p.startsWith('episode=')).join('&');
+        newUrl = `${base}?season=${sVal}&episode=${epVal}${cleanQuery ? '&' + cleanQuery : ''}`;
       } else {
-        newUrl = `${media.url}/episode/${epVal}`;
+        newUrl = `${newUrl}?season=${sVal}&episode=${epVal}`;
       }
     }
 
@@ -98,8 +125,41 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     if (onMediaUpdate) {
       onMediaUpdate({
         ...media,
-        url: newUrl,
-        episode: epVal
+        season: sVal.toString(),
+        episode: epVal.toString(),
+        url: newUrl
+      });
+    }
+  };
+
+  const handleEpisodeChange = (epVal) => {
+    const sVal = currentSeason;
+    let newUrl = media.url || '';
+    if (newUrl.includes('off-campus') || newUrl.includes('273240')) {
+      newUrl = `https://vidsrc.sbs/embed/tv/273240/${sVal}/${epVal}`;
+    } else if (newUrl.includes('/episode/')) {
+      newUrl = newUrl.replace(/\/episode\/\d+/, `/episode/${epVal}`);
+    } else if (newUrl.includes('episode=')) {
+      newUrl = newUrl.replace(/episode=\d+/, `episode=${epVal}`);
+    } else if (newUrl.match(/\/tv\/([^/]+)\/\d+\/\d+/)) {
+      newUrl = newUrl.replace(/\/tv\/([^/]+)\/\d+\/\d+/, `/tv/$1/${sVal}/${epVal}`);
+    } else {
+      if (newUrl.includes('?')) {
+        const [base, query] = newUrl.split('?');
+        const cleanQuery = query.split('&').filter(p => !p.startsWith('episode=')).join('&');
+        newUrl = `${base}?episode=${epVal}${cleanQuery ? '&' + cleanQuery : ''}`;
+      } else {
+        newUrl = `${newUrl}/episode/${epVal}`;
+      }
+    }
+
+    setCurrentTime(0);
+    if (onMediaUpdate) {
+      onMediaUpdate({
+        ...media,
+        season: sVal.toString(),
+        episode: epVal.toString(),
+        url: newUrl
       });
     }
   };
@@ -154,7 +214,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         className="relative w-full max-w-6xl aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10"
       >
         {/* Episode/Season & Mirror Selector Dropdowns (Top-Left) */}
-        {(media.title === 'Off Campus' || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id')))) && (
+        {(isTvSeries || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id') || media.url.includes('vidsrc')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
               value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}
@@ -169,7 +229,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   });
                 }
               }}
-              className="bg-[#ff4d85]/90 border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
+              className="bg-[#ff4d85]/90 hover:bg-[#ff4d85] border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors"
             >
               <option value="vidsrc_pm">Mirror 1 (vidsrc.pm)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
@@ -181,19 +241,21 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             {isTvSeries && (
               <>
                 <select
-                  value="1"
-                  disabled
-                  className="bg-black/80 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none opacity-50 cursor-not-allowed"
+                  value={currentSeason}
+                  onChange={(e) => handleSeasonChange(e.target.value)}
+                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg"
                 >
-                  <option value="1">Season 1</option>
+                  {Array.from({ length: totalSeasons }, (_, i) => i + 1).map((sNum) => (
+                    <option key={sNum} value={sNum}>Season {sNum}</option>
+                  ))}
                 </select>
 
                 <select
                   value={currentEpisode}
                   onChange={(e) => handleEpisodeChange(e.target.value)}
-                  className="bg-black/80 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer"
+                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].map((num) => (
                     <option key={num} value={num}>Episode {num}</option>
                   ))}
                 </select>
@@ -229,13 +291,13 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
           (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode'))) ? (
             <iframe 
               ref={localPlayerRef}
-              key={media.url}
+              key={`${media.url}_s${currentSeason}_e${currentEpisode}`}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
                   return media.url.replace('/view', '/preview');
                 }
 
-                const isTv = media.url.includes('/tv/') || media.url.includes('media_type=tv');
+                const isTv = isTvSeries || media.url.includes('/tv/') || media.url.includes('media_type=tv');
                 const isOffCampus = media.title === 'Off Campus';
                 
                 let tmdbIdParam = null;
@@ -248,33 +310,37 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   console.warn(e);
                 }
 
-                const id = isOffCampus ? '273240' : (tmdbIdParam || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1] || '10625');
+                const id = isOffCampus ? '273240' : (tmdbIdParam || media.tmdbId || media.id || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1]?.split('/')[0] || '10625');
                 const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm';
                 const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
                 if (provider === 'vidsrc_pm') {
                   if (isTv || isOffCampus) {
-                    return `https://vidsrc.pm/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
+                    return `https://vidsrc.pm/embed/tv/${id}/${currentSeason}/${currentEpisode}?autoplay=1${startParam}`;
                   }
                   return `https://vidsrc.pm/embed/movie/${id}?autoplay=1${startParam}`;
                 } else if (provider === 'vidsrc_xyz') {
                   if (isTv || isOffCampus) {
-                    return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=1&episode=${currentEpisode}&autoplay=1${startParam}`;
+                    return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${currentSeason}&episode=${currentEpisode}&autoplay=1${startParam}`;
                   }
                   return `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
                 } else if (provider === 'embed_su') {
                   if (isTv || isOffCampus) {
-                    return `https://embed.su/embed/tv/${id}/1/${currentEpisode}?start=${Math.floor(startOffsetTime)}`;
+                    return `https://embed.su/embed/tv/${id}/${currentSeason}/${currentEpisode}?start=${Math.floor(startOffsetTime)}`;
                   }
                   return `https://embed.su/embed/movie/${id}?start=${Math.floor(startOffsetTime)}`;
                 } else if (provider === 'vidsrc_in') {
                   if (isTv || isOffCampus) {
-                    return `https://vidsrc.in/embed/tv/${id}/1/${currentEpisode}?autoplay=1${startParam}`;
+                    return `https://vidsrc.in/embed/tv/${id}/${currentSeason}/${currentEpisode}?autoplay=1${startParam}`;
                   }
                   return `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
                 }
                 
-                const base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
+                let base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
+                if (isTv && base.includes('/embed/tv/')) {
+                  const idPart = media.imdbId || id;
+                  base = `https://streamimdb.ru/embed/tv/${idPart}/${currentSeason}/${currentEpisode}`;
+                }
                 const separator = base.includes('?') ? '&' : '?';
                 return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
               })()}
@@ -301,7 +367,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
           </div>
         )}
 
-        {isTvSeries && currentEpisode < 8 && (
+        {isTvSeries && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
