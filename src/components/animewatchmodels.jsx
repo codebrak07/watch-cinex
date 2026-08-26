@@ -19,7 +19,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
   const [currentSeason, setCurrentSeason] = useState(parseInt(media.season || '1', 10) || 1);
   const [currentEpisode, setCurrentEpisode] = useState(parseInt(media.episode || '1', 10) || 1);
   const [audioType, setAudioType] = useState('sub'); // 'sub' or 'dub'
-  const [selectedServer, setSelectedServer] = useState('vidlink'); // vidlink.pro as default reliable player
+  const [selectedServer, setSelectedServer] = useState('vidsrc_cc'); // vidsrc_cc V2 as default high-uptime player
   const [totalEpisodes, setTotalEpisodes] = useState(media.number_of_episodes || 24);
   const totalSeasons = Math.max(1, media.numberOfSeasons || media.totalSeasons || 4);
 

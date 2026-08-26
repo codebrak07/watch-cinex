@@ -1105,6 +1105,8 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                                   <img
                                     src={item.thumb}
                                     alt={item.title}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover rounded-md shadow-2xl relative z-10"
                                     onError={(e) => {
                                       e.target.onerror = null;

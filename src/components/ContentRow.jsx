@@ -53,6 +53,8 @@ export default function ContentRow({ title, items, onItemClick }) {
               <img 
                 src={item.thumb} 
                 alt={item.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
                 style={{ objectPosition: item.objectPosition || 'center' }}
               />
