@@ -12,6 +12,7 @@ import { useJam } from '../context/JamContext';
 import MoviesPage from './MoviesPage';
 import BrowseLanguages from './BrowseLanguages';
 import AnimePage from './AnimePage';
+import AnimeWatchModal from './animewatchmodels';
 
 const SOVEREIGN_EASE = [0.16, 1, 0.3, 1];
 const HOVER_EASE = [0.25, 1, 0.5, 1];
@@ -493,6 +494,7 @@ function MoreInfoPage({ onClose }) {
 export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) {
   const location = useLocation();
   const { selectedMedia, setSelectedMedia } = useJam() || {};
+  const [activeAnimeMedia, setActiveAnimeMedia] = useState(null);
   const [categories, setCategories] = useState([]);
   const [heroMovie, setHeroMovie] = useState(null);
 
@@ -804,7 +806,12 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
     setSearchError(null);
     try {
       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-      const res = await fetch(`/api/tmdb/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
+      const isAnimeRoute = location.pathname === '/anime';
+      const searchEndpoint = isAnimeRoute
+        ? `/api/tmdb/search/tv?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US&page=1`
+        : `/api/tmdb/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
+
+      const res = await fetch(searchEndpoint);
       if (!res.ok) throw new Error("Search request failed");
       const data = await res.json();
 
@@ -820,8 +827,14 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
 
       const filtered = (data.results || []).filter(
         (item) => {
-          if (item.media_type !== 'movie' && item.media_type !== 'tv') return false;
+          const mediaType = isAnimeRoute ? 'tv' : item.media_type;
+          if (mediaType !== 'movie' && mediaType !== 'tv') return false;
           if (item.adult) return false;
+          // When on /anime route, ensure anime results (genre 16 animation or ja original language)
+          if (isAnimeRoute) {
+            const isAnime = (item.genre_ids && item.genre_ids.includes(16)) || item.original_language === 'ja';
+            if (!isAnime) return false;
+          }
           // TV Genre 10764: Reality, 10767: Talk, 10763: News, 10766: Soap
           if (item.genre_ids && (item.genre_ids.includes(10764) || item.genre_ids.includes(10767) || item.genre_ids.includes(10763) || item.genre_ids.includes(10766))) return false;
           const title = (item.title || item.name || item.original_name || item.original_title || '').toLowerCase();
@@ -829,7 +842,11 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
           if (NSFW_SEARCH_BLACKLIST.some(kw => title.includes(kw) || overview.includes(` ${kw} `))) return false;
           return true;
         }
-      );
+      ).map(item => ({
+        ...item,
+        media_type: isAnimeRoute ? 'tv' : (item.media_type || 'movie'),
+        isAnime: isAnimeRoute || (item.genre_ids && item.genre_ids.includes(16) && item.original_language === 'ja')
+      }));
       setSearchResults(filtered);
     } catch (err) {
       console.error(err);
@@ -1383,55 +1400,63 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                       ) : null}
                     </div>
 
-                    {/* Footer: External IMDb Link & Watch It Here */}
+                    {/* Footer: Watch It Here & Add to My List */}
                     <div className="mt-8 border-t border-white/5 pt-4 flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                       <div className="flex flex-wrap gap-2.5">
-                        {selectedSearchResult.imdb_id ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
-                                setSelectedMedia({
-                                  type: 'video',
-                                  url: streamUrl,
-                                  title: selectedSearchResult.title || selectedSearchResult.name,
-                                  tmdbId: selectedSearchResult.id,
-                                  imdbId: selectedSearchResult.imdb_id,
-                                  mediaType: selectedSearchResult.media_type,
-                                  season: '1',
-                                  episode: '1',
-                                  numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                                  provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
-                                });
-                              }}
-                              className="flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#b20710] text-white font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-[#e50914]/20 transition-all uppercase tracking-wider cursor-pointer"
-                            >
-                              <Play size={16} fill="currentColor" />
-                              Watch It Here
-                            </button>
-                            <button
-                              onClick={toggleFavorite}
-                              className={`flex items-center justify-center gap-2 border font-semibold text-sm px-4 py-2.5 rounded-lg font-sans transition-all uppercase tracking-wider cursor-pointer ${isFavorite
-                                  ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                                  : 'bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700'
-                                }`}
-                            >
-                              {isFavorite ? '✓ In My List' : '+ My List'}
-                            </button>
-                            <a
-                              href={`https://www.imdb.com/title/${selectedSearchResult.imdb_id}/`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-2 bg-[#f5c518] hover:bg-[#e2b616] text-black font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-yellow-500/10 transition-all uppercase tracking-wider"
-                            >
-                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19.782 2H4.218A2.22 2.22 0 0 0 2 4.218v15.563C2 21 3.21 22 4.218 22h15.563C21 22 22 21 22 19.782V4.218A2.219 2.219 0 0 0 19.782 2zM7.568 16.568H6.182V8.432h1.386v8.136zm4.846-5.845a2.535 2.535 0 0 1-1.077.561v5.284h-1.39V8.432h1.39v1.27c.435-.918 1.157-1.393 2.141-1.393a2.128 2.128 0 0 1 1.83 1.055 2.766 2.766 0 0 1 .313 1.341v5.863h-1.39v-5.234a1.328 1.328 0 0 0-1.817-1.314zm5.748 3.518c0 1.62-.835 2.378-2.079 2.378-.456 0-.895-.145-1.127-.311v.248h-1.385V8.077h1.385v3.131c.232-.17.67-.306 1.127-.306 1.244 0 2.079.758 2.079 2.378v2.96zm-1.385-2.825c0-.986-.411-1.286-.98-1.286-.549 0-.877.269-1.076.54v2.09c.2.27.527.534 1.076.534.57 0 .98-.3.98-1.286v-2.592z" />
-                              </svg>
-                              IMDb
-                            </a>
-                          </>
-                        ) : (
-                          <span className="text-xs text-neutral-500 font-mono italic">No IMDb details</span>
+                        <button
+                          onClick={() => {
+                            const isAnime = selectedSearchResult.isAnime || 
+                              (selectedSearchResult.genre_ids && selectedSearchResult.genre_ids.includes(16) && selectedSearchResult.original_language === 'ja') ||
+                              (selectedSearchResult.genres && selectedSearchResult.genres.some(g => g.id === 16) && selectedSearchResult.original_language === 'ja');
+
+                            if (isAnime) {
+                              setActiveAnimeMedia({
+                                ...selectedSearchResult,
+                                title: selectedSearchResult.title || selectedSearchResult.name,
+                                name: selectedSearchResult.name || selectedSearchResult.title,
+                                isTvSeries: selectedSearchResult.media_type === 'tv'
+                              });
+                              setSelectedSearchResult(null);
+                              return;
+                            }
+
+                            const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
+                            setSelectedMedia({
+                              type: 'video',
+                              url: streamUrl,
+                              title: selectedSearchResult.title || selectedSearchResult.name,
+                              tmdbId: selectedSearchResult.id,
+                              imdbId: selectedSearchResult.imdb_id,
+                              mediaType: selectedSearchResult.media_type,
+                              season: '1',
+                              episode: '1',
+                              numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
+                              provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
+                            });
+                          }}
+                          className="flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#b20710] text-white font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-[#e50914]/20 transition-all uppercase tracking-wider cursor-pointer"
+                        >
+                          <Play size={16} fill="currentColor" />
+                          Watch It Here
+                        </button>
+                        <button
+                          onClick={toggleFavorite}
+                          className={`flex items-center justify-center gap-2 border font-semibold text-sm px-4 py-2.5 rounded-lg font-sans transition-all uppercase tracking-wider cursor-pointer ${isFavorite
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                              : 'bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700'
+                            }`}
+                        >
+                          {isFavorite ? '✓ In My List' : '+ My List'}
+                        </button>
+                        {selectedSearchResult.imdb_id && (
+                          <a
+                            href={`https://www.imdb.com/title/${selectedSearchResult.imdb_id}/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 bg-[#f5c518] hover:bg-[#e2b616] text-black font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-yellow-500/10 transition-all uppercase tracking-wider"
+                          >
+                            IMDb
+                          </a>
                         )}
                       </div>
 
@@ -1447,6 +1472,16 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
           document.body
         )}
 
+        {/* Dedicated Anime Watch Modal for anime streams */}
+        <AnimatePresence>
+          {activeAnimeMedia && (
+            <AnimeWatchModal
+              media={activeAnimeMedia}
+              onMediaUpdate={setActiveAnimeMedia}
+              onClose={() => setActiveAnimeMedia(null)}
+            />
+          )}
+        </AnimatePresence>
 
       </div>
     </>
