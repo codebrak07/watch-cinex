@@ -11,6 +11,7 @@ import { X, Heart, Sparkles, Play } from 'lucide-react';
 import { useJam } from '../context/JamContext';
 import MoviesPage from './MoviesPage';
 import BrowseLanguages from './BrowseLanguages';
+import AnimePage from './AnimePage';
 
 const SOVEREIGN_EASE = [0.16, 1, 0.3, 1];
 const HOVER_EASE = [0.25, 1, 0.5, 1];
@@ -560,12 +561,11 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
   };
 
   useEffect(() => {
-    const cachedData = sessionStorage.getItem('netflix_home_data');
+    const cachedData = sessionStorage.getItem('netflix_home_data_v2');
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData);
-        const hasLowItemRows = parsed.categories.some(cat => cat.items && cat.items.length < 3 && !cat.isContinueWatching);
-        if (parsed.categories && parsed.categories.length > 0 && !hasLowItemRows) {
+        if (parsed.categories && parsed.categories.length >= 6) {
           setCategories(parsed.categories);
           setHeroMovie(parsed.heroMovie || null);
           return;
@@ -585,7 +585,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
           popularRes,
           topTvRes,
           romanticKdramaRes,
-          avengersRes,
+          animeRes,
           netflixMoviesRes,
           netflixTvRes
         ] = await Promise.all([
@@ -595,7 +595,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
           fetch(`/api/tmdb/discover/movie?api_key=${apiKey}&region=IN&sort_by=popularity.desc`),
           fetch(`/api/tmdb/tv/top_rated?api_key=${apiKey}`),
           fetch(`/api/tmdb/discover/tv?api_key=${apiKey}&with_original_language=ko&with_genres=10749&sort_by=popularity.desc`),
-          fetch(`/api/tmdb/search/movie?api_key=${apiKey}&query=Avengers&language=en-US`),
+          fetch(`/api/tmdb/discover/tv?api_key=${apiKey}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&vote_count.gte=50&include_adult=false`),
           fetch(`/api/tmdb/discover/movie?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc`),
           fetch(`/api/tmdb/discover/tv?api_key=${apiKey}&with_networks=213&sort_by=popularity.desc`)
         ]);
@@ -606,17 +606,29 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         const popularData = await popularRes.json();
         const topTvData = await topTvRes.json();
         const romanticKdramaData = await romanticKdramaRes.json();
-        const avengersData = await avengersRes.json();
+        const animeData = await animeRes.json();
         const netflixMoviesData = await netflixMoviesRes.json();
         const netflixTvData = await netflixTvRes.json();
+
+        // Global NSFW & explicit anime keywords blacklist
+        const NSFW_KEYWORDS = [
+          'hentai', 'ecchi', 'erotic', 'lust', 'passion', 'ecstasy', 'naked', 'sex', 
+          'monk', 'souryo', 'shikiyoku', 'overflow', 'redo of healer', 'valkyrie drive', 
+          'doraemon', 'cartoon', 'pleasure', 'fetish', 'incest', 'harem',
+          'boobs', 'oppai', 'nude', 'nsfw', 'sensual', 'yosuga', 'school days',
+          'prison school', 'highschool dxd', 'shinmai maou', 'masou gakuen',
+          'peter grill', 'ishuzoku', 'interspecies', 'seikatsu', 'succubus',
+          'kaifuku', 'isekai meikyuu', 'gushing over magical', 'domestic girlfriend', 'boku no pico'
+        ];
 
         const cleanResults = (results) => {
           return (results || []).filter(item => {
             if (item.adult) return false;
             if (item.genre_ids && item.genre_ids.includes(16)) return false;
             if (item.genre_ids && (item.genre_ids.includes(10764) || item.genre_ids.includes(10767) || item.genre_ids.includes(10763) || item.genre_ids.includes(10766))) return false;
-            const title = (item.title || item.name || '').toLowerCase();
-            if (title.includes('doraemon') || title.includes('overflow') || title.includes('hentai') || title.includes('cartoon')) return false;
+            const title = (item.title || item.name || item.original_name || item.original_title || '').toLowerCase();
+            const overview = (item.overview || '').toLowerCase();
+            if (NSFW_KEYWORDS.some(kw => title.includes(kw) || overview.includes(` ${kw} `))) return false;
             return true;
           });
         };
@@ -669,12 +681,30 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
           media_type: 'tv'
         }));
 
-        const avengersItems = cleanResults(avengersData.results).slice(0, 15).map(item => ({
+        const animeItems = (animeData.results || []).filter(item => {
+          if (item.adult) return false;
+          const title = (item.name || item.title || '').toLowerCase();
+          if (
+            title.includes('doraemon') ||
+            title.includes('overflow') ||
+            title.includes('hentai') ||
+            title.includes('cartoon') ||
+            title.includes('souryo') ||
+            title.includes('shikiyoku') ||
+            title.includes('ecchi') ||
+            title.includes('isekai meikyuu') ||
+            title.includes('kaifuku') ||
+            title.includes('redo of healer') ||
+            title.includes('yosuga no sora')
+          ) return false;
+          return true;
+        }).slice(0, 15).map(item => ({
           ...item,
           type: 'video',
-          title: item.title || item.name,
+          title: item.name || item.title,
           thumb: `https://image.tmdb.org/t/p/w500${item.backdrop_path || item.poster_path}`,
-          media_type: 'movie'
+          media_type: 'tv',
+          isTvSeries: true
         }));
 
         const netflixExclusivesItems = [
@@ -689,8 +719,8 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
 
         const nextCategories = [
           { title: "Today's Top Picks for You", items: trendingItems },
+          { title: "Popular Anime Series", items: animeItems },
           { title: "Romantic K-dramas", items: romanticKdramaItems },
-          { title: "Avengers", items: avengersItems },
           { title: "Only on Netflix", items: netflixExclusivesItems },
           { title: "K-dramas Dubbed in English", items: kdramaEnglishItems },
           { title: "K-dramas Dubbed in Hindi", items: kdramaHindiItems },
@@ -707,7 +737,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         setCategories(nextCategories);
         setHeroMovie(nextHeroMovie);
 
-        sessionStorage.setItem('netflix_home_data', JSON.stringify({
+        sessionStorage.setItem('netflix_home_data_v2', JSON.stringify({
           categories: nextCategories,
           heroMovie: nextHeroMovie
         }));
@@ -778,15 +808,25 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
       if (!res.ok) throw new Error("Search request failed");
       const data = await res.json();
 
+      const NSFW_SEARCH_BLACKLIST = [
+        'hentai', 'ecchi', 'erotic', 'lust', 'passion', 'ecstasy', 'naked', 'sex', 
+        'monk', 'souryo', 'shikiyoku', 'overflow', 'redo of healer', 'valkyrie drive', 
+        'doraemon', 'cartoon', 'pleasure', 'fetish', 'incest', 'harem',
+        'boobs', 'oppai', 'nude', 'nsfw', 'sensual', 'yosuga', 'school days',
+        'prison school', 'highschool dxd', 'shinmai maou', 'masou gakuen',
+        'peter grill', 'ishuzoku', 'interspecies', 'seikatsu', 'succubus',
+        'kaifuku', 'isekai meikyuu', 'gushing over magical', 'domestic girlfriend', 'boku no pico'
+      ];
+
       const filtered = (data.results || []).filter(
         (item) => {
           if (item.media_type !== 'movie' && item.media_type !== 'tv') return false;
           if (item.adult) return false;
-          if (item.genre_ids && item.genre_ids.includes(16)) return false;
           // TV Genre 10764: Reality, 10767: Talk, 10763: News, 10766: Soap
           if (item.genre_ids && (item.genre_ids.includes(10764) || item.genre_ids.includes(10767) || item.genre_ids.includes(10763) || item.genre_ids.includes(10766))) return false;
-          const title = (item.title || item.name || '').toLowerCase();
-          if (title.includes('doraemon') || title.includes('overflow') || title.includes('hentai') || title.includes('cartoon')) return false;
+          const title = (item.title || item.name || item.original_name || item.original_title || '').toLowerCase();
+          const overview = (item.overview || '').toLowerCase();
+          if (NSFW_SEARCH_BLACKLIST.some(kw => title.includes(kw) || overview.includes(` ${kw} `))) return false;
           return true;
         }
       );
@@ -826,20 +866,36 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         new Promise(resolve => setTimeout(resolve, 2000))
       ]);
 
-      const detailData = await detailRes.json();
-      const externalData = await externalRes.json();
-      const creditsData = await creditsRes.json();
+      const detailData = detailRes.ok ? await detailRes.json() : {};
+      const externalData = externalRes.ok ? await externalRes.json() : {};
+      const creditsData = creditsRes.ok ? await creditsRes.json() : {};
+
+      // Gracefully handle belongs_to_collection if present
+      let collectionData = null;
+      if (detailData.belongs_to_collection && detailData.belongs_to_collection.id) {
+        try {
+          const colRes = await fetch(`/api/tmdb/collection/${detailData.belongs_to_collection.id}?api_key=${apiKey}&language=en-US`);
+          if (colRes.ok) {
+            collectionData = await colRes.json();
+          } else {
+            console.warn(`[TMDB Collection Warning] Collection ${detailData.belongs_to_collection.id} not found (${colRes.status}). Ignoring collection.`);
+          }
+        } catch (colErr) {
+          console.warn("[TMDB Collection Warning] Failed to fetch collection:", colErr);
+        }
+      }
 
       setSelectedSearchResult({
         ...item,
         ...detailData,
+        collection: collectionData,
         imdb_id: externalData.imdb_id || detailData.imdb_id,
         cast: (creditsData.cast || []).slice(0, 8),
         isLoadingNigga: false,
         niggaAnswered: true
       });
     } catch (err) {
-      console.error("Error fetching details:", err);
+      console.warn("Error fetching details:", err);
       setSelectedSearchResult({
         ...item,
         imdb_id: null,
@@ -966,6 +1022,8 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
               <BrowseLanguages onItemClick={handleSelectSearchResult} />
             ) : location.pathname === '/movies' ? (
               <MoviesPage onItemClick={handleSelectSearchResult} setSelectedMedia={setSelectedMedia} />
+            ) : location.pathname === '/anime' ? (
+              <AnimePage onItemClick={handleSelectSearchResult} setSelectedMedia={setSelectedMedia} />
             ) : (
               <>
                 <HeroBanner

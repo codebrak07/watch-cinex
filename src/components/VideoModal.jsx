@@ -231,11 +231,14 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#ff4d85]/90 hover:bg-[#ff4d85] border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors"
             >
-              <option value="vidsrc_pm">Mirror 1 (vidsrc.pm)</option>
+              <option value="vidsrc_pm">Mirror 1 (vidsrc.pm - Fast HD)</option>
               <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
-              <option value="embed_su">Mirror 3 (embed.su)</option>
-              <option value="vidsrc_in">Mirror 4 (vidsrc.in)</option>
-              <option value="streamimdb">Mirror 5 (streamimdb.ru)</option>
+              <option value="smashystream">Mirror 3 (smashystream.xyz)</option>
+              <option value="multiembed">Mirror 4 (multiembed.mov)</option>
+              <option value="autoembed">Mirror 5 (autoembed.cc)</option>
+              <option value="embed_su">Mirror 6 (embed.su)</option>
+              <option value="vidsrc_in">Mirror 7 (vidsrc.in)</option>
+              <option value="streamimdb">Mirror 8 (streamimdb.ru)</option>
             </select>
 
             {isTvSeries && (
@@ -255,7 +258,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   onChange={(e) => handleEpisodeChange(e.target.value)}
                   className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].map((num) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map((num) => (
                     <option key={num} value={num}>Episode {num}</option>
                   ))}
                 </select>
@@ -288,10 +291,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         </div>
 
         {media.type === 'video' ? (
-          (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode'))) ? (
+          (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode') || media.url.includes('autoembed') || media.url.includes('multiembed') || media.url.includes('smashystream'))) ? (
             <iframe 
               ref={localPlayerRef}
-              key={`${media.url}_s${currentSeason}_e${currentEpisode}`}
+              key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}`}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
                   return media.url.replace('/view', '/preview');
@@ -310,7 +313,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   console.warn(e);
                 }
 
-                const id = isOffCampus ? '273240' : (tmdbIdParam || media.tmdbId || media.id || media.url.split('/embed/')[1]?.split('/')[1]?.split('?')[0] || media.url.split('/tv/')[1]?.split('/')[0] || '10625');
+                const id = isOffCampus ? '273240' : (tmdbIdParam || media.tmdbId || media.id || (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media.url.match(/\/tv\/([^/?]+)/) || [])[1] || '10625');
                 const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm';
                 const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
@@ -324,6 +327,21 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                     return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${currentSeason}&episode=${currentEpisode}&autoplay=1${startParam}`;
                   }
                   return `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
+                } else if (provider === 'smashystream') {
+                  if (isTv || isOffCampus) {
+                    return `https://player.smashy.stream/tv/${id}?s=${currentSeason}&e=${currentEpisode}`;
+                  }
+                  return `https://player.smashy.stream/movie/${id}`;
+                } else if (provider === 'multiembed') {
+                  if (isTv) {
+                    return `https://www.2embed.cc/embedtv/${id}&s=${currentSeason}&e=${currentEpisode}`;
+                  }
+                  return `https://www.2embed.cc/embed/${id}`;
+                } else if (provider === 'autoembed') {
+                  if (isTv || isOffCampus) {
+                    return `https://player.autoembed.cc/embed/tv/${id}/${currentSeason}/${currentEpisode}`;
+                  }
+                  return `https://player.autoembed.cc/embed/movie/${id}`;
                 } else if (provider === 'embed_su') {
                   if (isTv || isOffCampus) {
                     return `https://embed.su/embed/tv/${id}/${currentSeason}/${currentEpisode}?start=${Math.floor(startOffsetTime)}`;
@@ -345,7 +363,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
               })()}
               className="w-full h-full border-0 bg-black"
-              allow="autoplay; encrypted-media; picture-in-picture"
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
             />
           ) : (

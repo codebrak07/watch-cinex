@@ -152,6 +152,21 @@ function AppContent() {
               } 
             />
             <Route 
+              path="/anime" 
+              element={
+                stage === 'home' ? (
+                  <NetflixHome 
+                    onSwitchProfile={handleSwitchProfile}
+                    onLogout={handleLogout}
+                    onHomeClick={handleHomeClick}
+                    key="anime" 
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            <Route 
               path="/languages" 
               element={
                 stage === 'home' ? (

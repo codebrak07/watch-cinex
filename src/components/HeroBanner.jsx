@@ -34,12 +34,12 @@ export default function HeroBanner({
       </div>
 
       {/* Content */}
-      <div className="hero-content-wrapper relative z-20 h-full flex flex-col justify-end px-4 md:px-12 pb-32 md:pb-48">
+      <div className="hero-content-wrapper relative z-20 h-full flex flex-col justify-end px-4 md:px-12 pb-24 md:pb-36 max-w-5xl">
         <motion.h1 
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 1.4, ease: SOVEREIGN_EASE }}
-          className="hero-title font-sans text-4xl md:text-7xl lg:text-8xl font-extrabold text-white mb-4 drop-shadow-2xl leading-[1.05] tracking-tight max-w-4xl"
+          className="hero-title font-sans text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-3 md:mb-4 drop-shadow-2xl leading-[1.1] tracking-tight max-w-3xl"
         >
           {title}
         </motion.h1>

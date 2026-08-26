@@ -11,6 +11,40 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Dancing+Script:wght@400;700&display=swap"
     rel="stylesheet">
+  <script>
+    // Polyfill & Bridge for Expo / React Native Web RCTAnimation & Native Modules
+    window.NativeModules = window.NativeModules || {};
+    window.RCTAnimation = window.RCTAnimation || {
+      startAnimatingNode: function() {},
+      stopAnimation: function() {},
+      createAnimatedNode: function() {},
+      dropAnimatedNode: function() {},
+      setAnimatedNodeValue: function() {},
+      setAnimatedNodeOffset: function() {},
+      flattenAnimatedNodeOffset: function() {},
+      extractAnimatedNodeOffset: function() {},
+      connectAnimatedNodes: function() {},
+      disconnectAnimatedNodes: function() {},
+      startListeningToAnimatedNodeValue: function() {},
+      stopListeningToAnimatedNodeValue: function() {},
+      addAnimatedEventToView: function() {},
+      removeAnimatedEventFromView: function() {},
+      getValue: function() {}
+    };
+    window.NativeModules.NativeAnimatedModule = window.RCTAnimation;
+    window.NativeModules.UIManager = window.NativeModules.UIManager || {};
+
+    // Pop-up and New Tab Blocker for Embedded Video Players
+    const originalOpen = window.open;
+    window.open = function(url, target, features) {
+      // Allow internal app links or explicit user interactions
+      if (url && (url.includes(window.location.hostname) || url.startsWith('/') || url.startsWith('blob:'))) {
+        return originalOpen.apply(this, arguments);
+      }
+      console.warn('[AdBlocker] Blocked popup/redirect to:', url);
+      return null;
+    };
+  </script>
 </head>
 
 <body>

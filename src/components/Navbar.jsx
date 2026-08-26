@@ -59,6 +59,7 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
   const isActive = (link) => {
     if (link === 'Home' && (location.pathname === '/browse' || location.pathname === '/')) return true;
     if (link === 'Movies' && location.pathname === '/movies') return true;
+    if (link === 'Anime' && location.pathname === '/anime') return true;
     if (link === 'My List' && location.pathname === '/favorites') return true;
     if (link === 'Browse by Languages' && location.pathname === '/languages') return true;
     return false;
@@ -89,7 +90,7 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
   // Background scroll listener
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
+      if (window.scrollY > 60) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
@@ -106,12 +107,14 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
     }
   }, [isSearchOpen]);
 
-  const navLinks = ['Home', 'Movies', 'My List', 'Browse by Languages'];
+  const navLinks = ['Home', 'Movies', 'Anime', 'My List', 'Browse by Languages'];
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-[100] transition-colors duration-300 px-4 md:px-12 py-5 flex items-center justify-between ${
-        isScrolled ? 'bg-[#141414]' : 'bg-transparent'
+      className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 px-4 md:px-12 py-4 md:py-5 flex items-center justify-between ${
+        isScrolled 
+          ? 'bg-[#141414] shadow-[0_4px_30px_rgba(0,0,0,0.8)]' 
+          : 'bg-gradient-to-b from-black/80 via-black/30 to-transparent'
       }`}
     >
       {/* Left Side: Brand Logo and Navigation Links */}
@@ -138,6 +141,8 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
                   navigate('/browse');
                 } else if (link === 'Movies') {
                   navigate('/movies');
+                } else if (link === 'Anime') {
+                  navigate('/anime');
                 } else if (link === 'My List') {
                   navigate('/favorites');
                 } else if (link === 'Browse by Languages') {
@@ -187,6 +192,8 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
                           navigate('/browse');
                         } else if (link === 'Movies') {
                           navigate('/movies');
+                        } else if (link === 'Anime') {
+                          navigate('/anime');
                         } else if (link === 'My List') {
                           navigate('/favorites');
                         } else if (link === 'Browse by Languages') {
@@ -374,6 +381,17 @@ export default function Navbar({ onSwitchProfile, onLogout, onAalekhClick, onAal
 
                   {/* Settings Actions Menu */}
                   <div className="flex flex-col px-1 text-[13px] text-neutral-300">
+                    <div 
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        navigate('/favorites');
+                      }}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm text-[#ff4d85] hover:text-pink-400 font-medium"
+                    >
+                      <Heart size={16} fill="currentColor" />
+                      <span>Liked Shows & Anime</span>
+                    </div>
+
                     <div 
                       onClick={onSwitchProfile}
                       className="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer rounded-sm"
