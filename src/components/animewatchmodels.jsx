@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize, ChevronLeft, ChevronRight, Play, Volume2, Globe, Radio, Server } from 'lucide-react';
+import { X, Maximize, ChevronLeft, ChevronRight, Play, Volume2, Globe, Radio, Server, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -15,11 +15,12 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
   const animeTitle = media.title || media.name || 'Anime Stream';
   const isTv = media.isTvSeries !== false && (media.mediaType !== 'movie' && media.media_type !== 'movie');
 
-  // State for episodes, audio (Sub/Dub), and servers (Zoro, Vidplay, BYFMS, DGHG, etc.)
+  // State for episodes, audio (Sub/Dub), servers, and anti-popup ad shield
   const [currentSeason, setCurrentSeason] = useState(parseInt(media.season || '1', 10) || 1);
   const [currentEpisode, setCurrentEpisode] = useState(parseInt(media.episode || '1', 10) || 1);
   const [audioType, setAudioType] = useState('sub'); // 'sub' or 'dub'
   const [selectedServer, setSelectedServer] = useState('vidsrc_cc'); // vidsrc_cc V2 as default high-uptime player
+  const [adShield, setAdShield] = useState(true); // Anti-popup sandbox protection
   const [totalEpisodes, setTotalEpisodes] = useState(media.number_of_episodes || 24);
   const totalSeasons = Math.max(1, media.numberOfSeasons || media.totalSeasons || 4);
 
@@ -35,7 +36,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
       }
     }, 1000);
     return () => clearTimeout(focusTimer);
-  }, [selectedServer, currentEpisode, currentSeason, audioType]);
+  }, [selectedServer, currentEpisode, currentSeason, audioType, adShield]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -60,11 +61,11 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
 
     switch (selectedServer) {
       case 'vidlink':
-        // VidLink.pro (Top tier 2024/2026 anime and movie stream provider)
+        // VidLink.pro (Top tier anime and movie stream provider)
         if (isTv) {
-          return `https://vidlink.pro/tv/${rawId}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true`;
+          return `https://vidlink.pro/tv/${rawId}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=false`;
         }
-        return `https://vidlink.pro/movie/${rawId}?primaryColor=e50914&autoplay=true`;
+        return `https://vidlink.pro/movie/${rawId}?primaryColor=e50914&autoplay=false`;
 
       case 'vidsrc_cc':
         // VidSrc.cc V2 Player
@@ -97,9 +98,9 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
       case 'zoro':
         // Zoro / Aniwatch Anime Stream (vidsrc.pm - active HLS stream)
         if (isTv) {
-          return `https://vidsrc.pm/embed/tv/${rawId}/${currentSeason}/${currentEpisode}?autoplay=1`;
+          return `https://vidsrc.pm/embed/tv/${rawId}/${currentSeason}/${currentEpisode}`;
         }
-        return `https://vidsrc.pm/embed/movie/${rawId}?autoplay=1`;
+        return `https://vidsrc.pm/embed/movie/${rawId}`;
 
       case 'gogoanime':
         // Gogoanime Stream Server (SmashyStream embed)
@@ -111,16 +112,16 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
       case 'byfms':
         // BYFMS Fast Stream Server (VidSrc XYZ)
         if (isTv) {
-          return `https://vidsrc.xyz/embed/tv?tmdb=${rawId}&season=${currentSeason}&episode=${currentEpisode}&autoplay=1`;
+          return `https://vidsrc.xyz/embed/tv?tmdb=${rawId}&season=${currentSeason}&episode=${currentEpisode}`;
         }
-        return `https://vidsrc.xyz/embed/movie?tmdb=${rawId}&autoplay=1`;
+        return `https://vidsrc.xyz/embed/movie?tmdb=${rawId}`;
 
       case 'dghg':
         // DGHG Ultra Server (VidSrc IN)
         if (isTv) {
-          return `https://vidsrc.in/embed/tv/${rawId}/${currentSeason}/${currentEpisode}?autoplay=1`;
+          return `https://vidsrc.in/embed/tv/${rawId}/${currentSeason}/${currentEpisode}`;
         }
-        return `https://vidsrc.in/embed/movie/${rawId}?autoplay=1`;
+        return `https://vidsrc.in/embed/movie/${rawId}`;
 
       case 'aniwaves':
         // Aniwaves Pro Mirror
@@ -174,16 +175,30 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Anti-Popup Ad Shield Toggle */}
+            <button
+              onClick={() => setAdShield(!adShield)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono border transition-all cursor-pointer ${
+                adShield 
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25' 
+                  : 'bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25'
+              }`}
+              title={adShield ? "Anti-Popup Shield is ACTIVE (blocking ad popups & redirects). Click to toggle." : "Anti-Popup Shield is OFF. Click to enable."}
+            >
+              {adShield ? <ShieldCheck size={13} className="text-emerald-400" /> : <ShieldAlert size={13} className="text-amber-400" />}
+              <span className="hidden sm:inline">{adShield ? "Ad Shield: ON" : "Ad Shield: OFF"}</span>
+            </button>
+
             <button
               onClick={toggleFullscreen}
-              className="text-neutral-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="text-neutral-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
               title="Fullscreen"
             >
               <Maximize size={18} />
             </button>
             <button
               onClick={onClose}
-              className="text-neutral-400 hover:text-white bg-red-500/80 hover:bg-red-500 p-2 rounded-full transition-colors"
+              className="text-neutral-400 hover:text-white bg-red-500/80 hover:bg-red-500 p-2 rounded-full transition-colors cursor-pointer"
               title="Close"
             >
               <X size={18} />
@@ -191,39 +206,46 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
           </div>
         </div>
 
-        {/* Video Player Frame */}
+        {/* Video Player Frame with Sandboxing to prevent popups */}
         <div className="relative aspect-video w-full bg-black">
           <iframe
             ref={localPlayerRef}
-            key={`${selectedServer}_${currentSeason}_${currentEpisode}_${audioType}`}
+            key={`${selectedServer}_${currentSeason}_${currentEpisode}_${audioType}_${adShield}`}
             src={getStreamUrl()}
             className="w-full h-full border-0 bg-black"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
+            {...(adShield ? { sandbox: "allow-forms allow-scripts allow-same-origin allow-presentation" } : {})}
           />
         </div>
 
-        {/* Anime Controls Bar: SUB / DUB & 3 Primary Streaming Servers */}
+        {/* Anime Controls Bar: SUB / DUB & Primary Streaming Servers */}
         <div className="bg-[#111217] p-4 border-t border-white/10 flex flex-col gap-3">
 
-          {/* Status info bar */}
+          {/* Status info bar & audio helper note */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-neutral-400 gap-2 border-b border-white/5 pb-2.5">
-            <p>
-              You're watching <span className="text-pink-400 font-bold">Episode {currentEpisode}</span>. If the current server doesn't load, please switch servers beside.
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p>
+                Watching <span className="text-pink-400 font-bold">Episode {currentEpisode}</span>
+              </p>
+              <span className="text-neutral-600 hidden sm:inline">•</span>
+              <span className="flex items-center gap-1 text-[11px] text-neutral-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                <Volume2 size={12} className="text-pink-400" /> Click player to unmute if muted
+              </span>
+            </div>
             {isTv && (
               <div className="flex items-center gap-2">
                 <button
                   disabled={currentEpisode <= 1}
                   onClick={() => handleEpisodeSelect(currentEpisode - 1)}
-                  className="flex items-center gap-1 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 rounded text-[11px] font-mono text-white transition-colors"
+                  className="flex items-center gap-1 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 rounded text-[11px] font-mono text-white transition-colors cursor-pointer"
                 >
                   <ChevronLeft size={14} /> Prev
                 </button>
                 <button
                   disabled={currentEpisode >= totalEpisodes}
                   onClick={() => handleEpisodeSelect(currentEpisode + 1)}
-                  className="flex items-center gap-1 bg-pink-600/80 hover:bg-pink-600 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 rounded text-[11px] font-mono text-white transition-colors"
+                  className="flex items-center gap-1 bg-pink-600/80 hover:bg-pink-600 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 rounded text-[11px] font-mono text-white transition-colors cursor-pointer"
                 >
                   Next <ChevronRight size={14} />
                 </button>

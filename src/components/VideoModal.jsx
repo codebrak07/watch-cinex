@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Maximize, ChevronRight } from 'lucide-react';
+import { X, Maximize, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,6 +9,7 @@ const HOVER_EASE = [0.25, 1, 0.5, 1];
 export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const containerRef = useRef(null);
   const localPlayerRef = useRef(null);
+  const [adShield, setAdShield] = useState(true);
 
   const mediaId = media.tmdbId || media.id || '99999';
   const isTvSeries = media.title === 'Off Campus' || 
@@ -268,7 +269,21 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         )}
 
         {/* Floating Top-Right Standard Options */}
-        <div className="absolute top-4 right-4 flex gap-2.5 z-50 pointer-events-auto">
+        <div className="absolute top-4 right-4 flex items-center gap-2.5 z-50 pointer-events-auto">
+          {/* Anti-Popup Ad Shield Toggle */}
+          <button
+            onClick={() => setAdShield(!adShield)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer backdrop-blur-md ${
+              adShield 
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30' 
+                : 'bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30'
+            }`}
+            title={adShield ? "Anti-Popup Shield: ACTIVE (Blocking Ads & Redirects). Click to toggle." : "Anti-Popup Shield: OFF. Click to enable."}
+          >
+            {adShield ? <ShieldCheck size={14} className="text-emerald-400" /> : <ShieldAlert size={14} className="text-amber-400" />}
+            <span className="hidden sm:inline">{adShield ? "Ad Shield ON" : "Ad Shield OFF"}</span>
+          </button>
+
           <motion.button 
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -294,7 +309,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
           (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode') || media.url.includes('autoembed') || media.url.includes('multiembed') || media.url.includes('smashystream'))) ? (
             <iframe 
               ref={localPlayerRef}
-              key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}`}
+              key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}_${adShield}`}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
                   return media.url.replace('/view', '/preview');
@@ -365,6 +380,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               className="w-full h-full border-0 bg-black"
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
+              {...(adShield ? { sandbox: "allow-forms allow-scripts allow-same-origin allow-presentation" } : {})}
             />
           ) : (
             <video
