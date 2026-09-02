@@ -415,27 +415,27 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidlink'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'vidlink'
-                      ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
+                  onClick={() => { setAudioType('sub'); setSelectedServer('vidplay'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'sub' && selectedServer === 'vidplay'
+                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Radio size={12} />
-                  VidLink (Clean 1080p)
+                  Vidplay (Main 1)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidplay'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'vidplay'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
+                  onClick={() => { setAudioType('sub'); setSelectedServer('dghg'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'sub' && selectedServer === 'dghg'
+                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
-                  <Radio size={12} />
-                  Vidplay
+                  <Server size={12} />
+                  DGHG (Main 2)
                 </button>
 
                 <button
@@ -451,15 +451,15 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('dghg'); }}
+                  onClick={() => { setAudioType('sub'); setSelectedServer('vidlink'); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'dghg'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
+                    audioType === 'sub' && selectedServer === 'vidlink'
+                      ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
-                  <Server size={12} />
-                  DGHG
+                  <Radio size={12} />
+                  VidLink (Clean 1080p)
                 </button>
 
                 <button
@@ -544,27 +544,27 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('vidlink'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'vidlink'
-                      ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
+                  onClick={() => { setAudioType('dub'); setSelectedServer('vidplay'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'dub' && selectedServer === 'vidplay'
+                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Radio size={12} />
-                  VidLink (Clean 1080p)
+                  Vidplay (Main 1)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('vidplay'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'vidplay'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
+                  onClick={() => { setAudioType('dub'); setSelectedServer('dghg'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'dub' && selectedServer === 'dghg'
+                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
-                  <Radio size={12} />
-                  Vidplay
+                  <Server size={12} />
+                  DGHG (Main 2)
                 </button>
 
                 <button
@@ -580,15 +580,15 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('dghg'); }}
+                  onClick={() => { setAudioType('dub'); setSelectedServer('vidlink'); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'dghg'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
+                    audioType === 'dub' && selectedServer === 'vidlink'
+                      ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
-                  <Server size={12} />
-                  DGHG
+                  <Radio size={12} />
+                  VidLink (Clean 1080p)
                 </button>
 
                 <button
