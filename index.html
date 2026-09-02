@@ -86,6 +86,21 @@
         }
       }, true);
 
+      // Programmatic anchor .click() interceptor
+      const origAnchorClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function() {
+        if (this.href) {
+          try {
+            const dest = new URL(this.href, window.location.origin);
+            if (dest.origin !== window.location.origin && !dest.protocol.startsWith('blob') && !dest.protocol.startsWith('data')) {
+              console.warn('[AdShield] Blocked programmatic anchor click to:', this.href);
+              return;
+            }
+          } catch(e) {}
+        }
+        return origAnchorClick.apply(this, arguments);
+      };
+
       // 3. Block auxclick (middle-click popup hijack)
       document.addEventListener('auxclick', function(e) {
         const anchor = e.target.closest('a');

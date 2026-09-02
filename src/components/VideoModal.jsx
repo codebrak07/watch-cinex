@@ -497,7 +497,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               })()}
               className="w-full h-full border-0 bg-black"
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"
               allowFullScreen
             />
           </>
