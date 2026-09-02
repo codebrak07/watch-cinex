@@ -34,16 +34,89 @@
     window.NativeModules.NativeAnimatedModule = window.RCTAnimation;
     window.NativeModules.UIManager = window.NativeModules.UIManager || {};
 
-    // Pop-up and New Tab Blocker for Embedded Video Players
-    const originalOpen = window.open;
-    window.open = function(url, target, features) {
-      // Allow internal app links or explicit user interactions
-      if (url && (url.includes(window.location.hostname) || url.startsWith('/') || url.startsWith('blob:'))) {
-        return originalOpen.apply(this, arguments);
-      }
-      console.warn('[AdBlocker] Blocked popup/redirect to:', url);
-      return null;
-    };
+    // =========================================================================
+    // ADVANCED AD & POPUP BLOCKING SHIELD
+    // Intercepts window.open, link clickjacking, synthetic clicks, and ad redirects
+    // =========================================================================
+    (function() {
+      // 1. Create a dummy window proxy so ad scripts think the popup succeeded and don't try fallback redirects
+      const fakeWindowProxy = {
+        closed: true,
+        name: 'ad-shield-blocked',
+        opener: null,
+        parent: window,
+        top: window,
+        location: { href: '', replace: function() {}, assign: function() {}, reload: function() {} },
+        document: { write: function() {}, close: function() {}, open: function() {}, body: {} },
+        close: function() {},
+        focus: function() {},
+        blur: function() {},
+        postMessage: function() {},
+        addEventListener: function() {},
+        removeEventListener: function() {}
+      };
+
+      const originalOpen = window.open;
+      window.open = function(url, target, features) {
+        if (typeof url === 'string') {
+          // Allow internal app routes and blob URLs
+          if (url.startsWith('/') || url.startsWith('blob:') || (url.includes(window.location.hostname) && !url.includes('ad'))) {
+            return originalOpen.apply(this, arguments);
+          }
+        }
+        console.warn('[AdShield] Blocked popup attempt to:', url);
+        return fakeWindowProxy;
+      };
+
+      // 2. Intercept synthetic click events on ad links dynamically created by player scripts
+      document.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a');
+        if (anchor && anchor.href) {
+          try {
+            const destUrl = new URL(anchor.href, window.location.origin);
+            if (destUrl.origin !== window.location.origin && !destUrl.protocol.startsWith('blob') && !destUrl.protocol.startsWith('data')) {
+              // Block opening external ad links
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              console.warn('[AdShield] Blocked external ad link dispatch:', anchor.href);
+              return false;
+            }
+          } catch(err) {}
+        }
+      }, true);
+
+      // 3. Block auxclick (middle-click popup hijack)
+      document.addEventListener('auxclick', function(e) {
+        const anchor = e.target.closest('a');
+        if (anchor && anchor.href) {
+          try {
+            const destUrl = new URL(anchor.href, window.location.origin);
+            if (destUrl.origin !== window.location.origin) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          } catch(err) {}
+        }
+      }, true);
+
+      // 4. Protect against window blur hijacking (when an ad attempts to push current tab to background)
+      window.addEventListener('blur', function() {
+        setTimeout(function() {
+          if (document.visibilityState === 'visible') {
+            window.focus();
+          }
+        }, 150);
+      });
+
+      // 5. Protect against malicious page unload / top navigation hijacking when player is active
+      window.addEventListener('beforeunload', function(e) {
+        if (window.__isPlayerModalOpen) {
+          e.preventDefault();
+          e.returnValue = '';
+        }
+      });
+    })();
   </script>
 </head>
 

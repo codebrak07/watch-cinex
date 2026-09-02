@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Maximize, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { X, Maximize, ChevronRight } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,7 +9,6 @@ const HOVER_EASE = [0.25, 1, 0.5, 1];
 export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const containerRef = useRef(null);
   const localPlayerRef = useRef(null);
-  const [adShield, setAdShield] = useState(true);
 
   const mediaId = media.tmdbId || media.id || '99999';
   const isTvSeries = media.title === 'Off Campus' || 
@@ -37,13 +36,94 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return match ? match[1] : '1';
   })(), 10) || 1;
 
-  const totalSeasons = Math.max(1, media.numberOfSeasons || media.totalSeasons || 10);
+  const [resolvedTmdbId, setResolvedTmdbId] = useState(mediaId);
+  const [seasonsList, setSeasonsList] = useState([]);
+  const [episodesList, setEpisodesList] = useState([]);
+  const [firstClickShieldActive, setFirstClickShieldActive] = useState(true);
 
-  // Force default provider to vidsrc_pm on mount
+  // Notify parent window that a player modal is active to block popups & navigation hijacks
+  useEffect(() => {
+    window.__isPlayerModalOpen = true;
+    return () => {
+      window.__isPlayerModalOpen = false;
+    };
+  }, []);
+
+  // Fetch TMDB TV show details for all seasons
+  useEffect(() => {
+    if (!isTvSeries) return;
+    let isCancelled = false;
+
+    const fetchTvShow = async () => {
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+      let targetId = mediaId;
+
+      try {
+        if (!targetId || targetId === '99999' || isNaN(Number(targetId))) {
+          const searchRes = await fetch(`/api/tmdb/search/tv?api_key=${apiKey}&query=${encodeURIComponent(media.title || '')}&language=en-US`);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (searchData.results && searchData.results.length > 0) {
+              targetId = searchData.results[0].id.toString();
+              if (!isCancelled) setResolvedTmdbId(targetId);
+            }
+          }
+        }
+
+        if (targetId && targetId !== '99999') {
+          const res = await fetch(`/api/tmdb/tv/${targetId}?api_key=${apiKey}&language=en-US`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!isCancelled) {
+              setResolvedTmdbId(targetId);
+              if (data.seasons && data.seasons.length > 0) {
+                const validSeasons = data.seasons.filter(s => s.season_number > 0);
+                setSeasonsList(validSeasons.length > 0 ? validSeasons : data.seasons);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch TV details in VideoModal:', err);
+      }
+    };
+
+    fetchTvShow();
+    return () => { isCancelled = true; };
+  }, [mediaId, media.title, isTvSeries]);
+
+  // Fetch TMDB TV episodes for current season
+  useEffect(() => {
+    if (!isTvSeries) return;
+    let isCancelled = false;
+
+    const fetchEpisodes = async () => {
+      const targetId = resolvedTmdbId || mediaId;
+      if (!targetId || targetId === '99999') return;
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+
+      try {
+        const res = await fetch(`/api/tmdb/tv/${targetId}/season/${currentSeason}?api_key=${apiKey}&language=en-US`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled && data.episodes && data.episodes.length > 0) {
+            setEpisodesList(data.episodes);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch season episodes in VideoModal:', err);
+      }
+    };
+
+    fetchEpisodes();
+    return () => { isCancelled = true; };
+  }, [resolvedTmdbId, mediaId, currentSeason, isTvSeries]);
+
+  // Force default provider to vidlink on mount for clean ad-free playback
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    if (saved !== 'vidsrc_pm') {
-      localStorage.setItem('off_campus_provider', 'vidsrc_pm');
+    if (!saved || saved === 'vidsrc_pm') {
+      localStorage.setItem('off_campus_provider', 'vidlink');
     }
   }, []);
 
@@ -218,7 +298,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         {(isTvSeries || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id') || media.url.includes('vidsrc')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
-              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}
+              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'vidlink'}
               onChange={(e) => {
                 const provVal = e.target.value;
                 window.localStorage.setItem('off_campus_provider', provVal);
@@ -232,14 +312,17 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#ff4d85]/90 hover:bg-[#ff4d85] border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors"
             >
-              <option value="vidsrc_pm">Mirror 1 (vidsrc.pm - Fast HD)</option>
-              <option value="vidsrc_xyz">Mirror 2 (vidsrc.xyz)</option>
-              <option value="smashystream">Mirror 3 (smashystream.xyz)</option>
-              <option value="multiembed">Mirror 4 (multiembed.mov)</option>
-              <option value="autoembed">Mirror 5 (autoembed.cc)</option>
-              <option value="embed_su">Mirror 6 (embed.su)</option>
-              <option value="vidsrc_in">Mirror 7 (vidsrc.in)</option>
-              <option value="streamimdb">Mirror 8 (streamimdb.ru)</option>
+              <option value="vidlink">Mirror 1 (VidLink Pro - Clean 1080p / No Ads)</option>
+              <option value="vidplay">Mirror 2 (Vidplay - Anime & Fast HD)</option>
+              <option value="vidsrc_xyz">Mirror 3 (BYFMS / vidsrc.xyz)</option>
+              <option value="vidsrc_in">Mirror 4 (DGHG / vidsrc.in)</option>
+              <option value="vidsrc_cc">Mirror 5 (VidSrc CC - Universal Fast)</option>
+              <option value="embed_su">Mirror 6 (embed.su - Fast Clean HD)</option>
+              <option value="autoembed">Mirror 7 (autoembed.cc - Low Ads)</option>
+              <option value="vidsrc_pm">Mirror 8 (vidsrc.pm - Fast HD)</option>
+              <option value="smashystream">Mirror 9 (smashystream.xyz)</option>
+              <option value="multiembed">Mirror 10 (multiembed.mov)</option>
+              <option value="streamimdb">Mirror 11 (streamimdb.ru)</option>
             </select>
 
             {isTvSeries && (
@@ -247,21 +330,37 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 <select
                   value={currentSeason}
                   onChange={(e) => handleSeasonChange(e.target.value)}
-                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg"
+                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg max-w-[130px] truncate"
                 >
-                  {Array.from({ length: totalSeasons }, (_, i) => i + 1).map((sNum) => (
-                    <option key={sNum} value={sNum}>Season {sNum}</option>
-                  ))}
+                  {seasonsList.length > 0 ? (
+                    seasonsList.map((s) => (
+                      <option key={s.season_number} value={s.season_number}>
+                        {s.name || `Season ${s.season_number}`}
+                      </option>
+                    ))
+                  ) : (
+                    Array.from({ length: 10 }, (_, i) => i + 1).map((sNum) => (
+                      <option key={sNum} value={sNum}>Season {sNum}</option>
+                    ))
+                  )}
                 </select>
 
                 <select
                   value={currentEpisode}
                   onChange={(e) => handleEpisodeChange(e.target.value)}
-                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg"
+                  className="bg-black/80 hover:bg-black/95 text-white border border-white/20 rounded px-2 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer transition-colors shadow-lg max-w-[140px] truncate"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].map((num) => (
-                    <option key={num} value={num}>Episode {num}</option>
-                  ))}
+                  {episodesList.length > 0 ? (
+                    episodesList.map((ep) => (
+                      <option key={ep.episode_number} value={ep.episode_number}>
+                        EP {ep.episode_number}{ep.name ? `: ${ep.name.slice(0, 16)}` : ''}
+                      </option>
+                    ))
+                  ) : (
+                    Array.from({ length: 30 }, (_, i) => i + 1).map((num) => (
+                      <option key={num} value={num}>Episode {num}</option>
+                    ))
+                  )}
                 </select>
               </>
             )}
@@ -270,19 +369,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
         {/* Floating Top-Right Standard Options */}
         <div className="absolute top-4 right-4 flex items-center gap-2.5 z-50 pointer-events-auto">
-          {/* Anti-Popup Ad Shield Toggle */}
-          <button
-            onClick={() => setAdShield(!adShield)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer backdrop-blur-md ${
-              adShield 
-                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30' 
-                : 'bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30'
-            }`}
-            title={adShield ? "Anti-Popup Shield: ACTIVE (Blocking Ads & Redirects). Click to toggle." : "Anti-Popup Shield: OFF. Click to enable."}
-          >
-            {adShield ? <ShieldCheck size={14} className="text-emerald-400" /> : <ShieldAlert size={14} className="text-amber-400" />}
-            <span className="hidden sm:inline">{adShield ? "Ad Shield ON" : "Ad Shield OFF"}</span>
-          </button>
 
           <motion.button 
             whileHover={{ scale: 1.1 }}
@@ -307,9 +393,26 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
         {media.type === 'video' ? (
           (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode') || media.url.includes('autoembed') || media.url.includes('multiembed') || media.url.includes('smashystream'))) ? (
-            <iframe 
-              ref={localPlayerRef}
-              key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}_${adShield}`}
+            <>
+              {firstClickShieldActive && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setFirstClickShieldActive(false);
+                    if (localPlayerRef.current) {
+                      try {
+                        localPlayerRef.current.focus();
+                      } catch (err) {}
+                    }
+                  }}
+                  className="absolute inset-0 z-30 cursor-pointer flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors"
+                  title="Click to activate player (Pop-up protected)"
+                />
+              )}
+              <iframe 
+                ref={localPlayerRef}
+                key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'}`}
               src={(() => {
                 if (media.url.includes('drive.google.com')) {
                   return media.url.replace('/view', '/preview');
@@ -328,11 +431,26 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   console.warn(e);
                 }
 
-                const id = isOffCampus ? '273240' : (tmdbIdParam || media.tmdbId || media.id || (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media.url.match(/\/tv\/([^/?]+)/) || [])[1] || '10625');
-                const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm';
+                const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media.url.match(/\/tv\/([^/?]+)/) || [])[1] || '10625');
+                const provider = window.localStorage.getItem('off_campus_provider') || 'vidsrc_cc';
                 const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
                 
-                if (provider === 'vidsrc_pm') {
+                if (provider === 'vidplay') {
+                  if (isTv || isOffCampus) {
+                    return `https://vidplay.to/stream/embed?imdbid=${media.imdbId || ''}&tmdbid=${id}&type=tv&name=${encodeURIComponent(media.title || '')}&year=2024&season=${currentSeason}&episode=${currentEpisode}`;
+                  }
+                  return `https://vidplay.to/stream/embed?imdbid=${media.imdbId || ''}&tmdbid=${id}&type=movie&name=${encodeURIComponent(media.title || '')}&year=2024&season=0&episode=0`;
+                } else if (provider === 'vidsrc_cc') {
+                  if (isTv || isOffCampus) {
+                    return `https://vidsrc.cc/v2/embed/tv/${id}/${currentSeason}/${currentEpisode}`;
+                  }
+                  return `https://vidsrc.cc/v2/embed/movie/${id}`;
+                } else if (provider === 'vidlink') {
+                  if (isTv || isOffCampus) {
+                    return `https://vidlink.pro/tv/${id}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=false`;
+                  }
+                  return `https://vidlink.pro/movie/${id}?primaryColor=e50914&autoplay=false`;
+                } else if (provider === 'vidsrc_pm') {
                   if (isTv || isOffCampus) {
                     return `https://vidsrc.pm/embed/tv/${id}/${currentSeason}/${currentEpisode}?autoplay=1${startParam}`;
                   }
@@ -379,9 +497,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               })()}
               className="w-full h-full border-0 bg-black"
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"
               allowFullScreen
-              {...(adShield ? { sandbox: "allow-forms allow-scripts allow-same-origin allow-presentation" } : {})}
             />
+          </>
           ) : (
             <video
               ref={localPlayerRef}
