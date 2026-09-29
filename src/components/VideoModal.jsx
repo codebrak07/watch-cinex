@@ -41,6 +41,16 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const [episodesList, setEpisodesList] = useState([]);
   const [firstClickShieldActive, setFirstClickShieldActive] = useState(false);
 
+  const [currentProvider, setCurrentProvider] = useState(() => {
+    return media.provider || window.localStorage.getItem('off_campus_provider') || 'videasy';
+  });
+
+  useEffect(() => {
+    if (media.provider && media.provider !== currentProvider) {
+      setCurrentProvider(media.provider);
+    }
+  }, [media.provider]);
+
   // Notify parent window that a player modal is active to block popups & navigation hijacks
   useEffect(() => {
     window.__isPlayerModalOpen = true;
@@ -312,15 +322,16 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         {(isTvSeries || (media.url && (media.url.includes('streamimdb.ru') || media.url.includes('tmdb_id') || media.url.includes('vidsrc')))) && (
           <div className="absolute top-4 left-4 flex gap-2.5 z-50 pointer-events-auto">
             <select
-              value={media.provider || window.localStorage.getItem('off_campus_provider') || 'videasy'}
+              value={currentProvider}
               onChange={(e) => {
                 const provVal = e.target.value;
+                setCurrentProvider(provVal);
                 window.localStorage.setItem('off_campus_provider', provVal);
                 if (onMediaUpdate) {
                   onMediaUpdate({
                     ...media,
                     provider: provVal,
-                    url: `${media.url.split('?')[0]}?t=${Date.now()}`
+                    url: `${(media.url || '').split('?')[0]}?t=${Date.now()}`
                   });
                 }
               }}
@@ -407,7 +418,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         </div>
 
         {media.type === 'video' ? (
-          (media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode') || media.url.includes('autoembed') || media.url.includes('multiembed') || media.url.includes('smashystream'))) ? (
+          ((media.url && (media.url.includes('drive.google.com') || media.url.includes('streamimdb.ru') || media.url.includes('vidsrc') || media.url.includes('embed.su') || media.url.includes('watchmode') || media.url.includes('autoembed') || media.url.includes('multiembed') || media.url.includes('smashystream') || media.url.includes('videasy') || media.url.includes('vidlink') || media.url.includes('vidplay') || media.url.includes('2embed') || media.url.includes('/embed/'))) || !!(media.tmdbId || media.id || media.imdbId)) ? (
             <>
               {firstClickShieldActive && (
                 <div
@@ -427,13 +438,13 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               )}
               <iframe
                 ref={localPlayerRef}
-                key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${media.provider || window.localStorage.getItem('off_campus_provider') || 'videasy'}`}
+                key={`${media.url}_s${currentSeason}_e${currentEpisode}_prov_${currentProvider}`}
                 src={(() => {
-                  if (media.url.includes('drive.google.com')) {
+                  if (media.url && media.url.includes('drive.google.com')) {
                     return media.url.replace('/view', '/preview');
                   }
 
-                  const isTv = isTvSeries || media.url.includes('/tv/') || media.url.includes('media_type=tv');
+                  const isTv = isTvSeries || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
                   const isOffCampus = media.title === 'Off Campus';
 
                   let tmdbIdParam = null;
@@ -446,8 +457,8 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                     console.warn(e);
                   }
 
-                  const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media.url.match(/\/tv\/([^/?]+)/) || [])[1] || '10625');
-                  const provider = media.provider || window.localStorage.getItem('off_campus_provider') || 'videasy';
+                  const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625');
+                  const provider = currentProvider;
                   const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
 
                   if (provider === 'videasy') {
@@ -521,7 +532,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
                 })()}
                 className="w-full h-full border-0 bg-black"
-                sandbox={provider === 'vidsrc_pm' ? "allow-scripts allow-same-origin allow-forms allow-presentation" : undefined}
+                sandbox={currentProvider === 'vidsrc_pm' ? "allow-scripts allow-same-origin allow-forms allow-presentation" : undefined}
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
               />

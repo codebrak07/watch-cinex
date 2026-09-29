@@ -864,9 +864,11 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
   };
 
   const handleSelectSearchResult = async (item) => {
+    const itemMediaType = item.media_type || (item.first_air_date || item.name ? 'tv' : 'movie');
     // Open modal immediately with base item details and set loading status
     setSelectedSearchResult({
       ...item,
+      media_type: itemMediaType,
       isLoadingNigga: true,
       imdb_id: null,
       cast: []
@@ -877,9 +879,9 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
 
       // Parallel API calls with 2s delay to show the "asking" state
       const [detailRes, externalRes, creditsRes] = await Promise.all([
-        fetch(`/api/tmdb/${item.media_type}/${item.id}?api_key=${apiKey}&language=en-US`),
-        fetch(`/api/tmdb/${item.media_type}/${item.id}/external_ids?api_key=${apiKey}`),
-        fetch(`/api/tmdb/${item.media_type}/${item.id}/credits?api_key=${apiKey}`),
+        fetch(`/api/tmdb/${itemMediaType}/${item.id}?api_key=${apiKey}&language=en-US`),
+        fetch(`/api/tmdb/${itemMediaType}/${item.id}/external_ids?api_key=${apiKey}`),
+        fetch(`/api/tmdb/${itemMediaType}/${item.id}/credits?api_key=${apiKey}`),
         new Promise(resolve => setTimeout(resolve, 2000))
       ]);
 
@@ -905,6 +907,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
       setSelectedSearchResult({
         ...item,
         ...detailData,
+        media_type: itemMediaType,
         collection: collectionData,
         imdb_id: externalData.imdb_id || detailData.imdb_id,
         cast: (creditsData.cast || []).slice(0, 8),
@@ -915,6 +918,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
       console.warn("Error fetching details:", err);
       setSelectedSearchResult({
         ...item,
+        media_type: itemMediaType,
         imdb_id: null,
         cast: [],
         isLoadingNigga: false,
@@ -1307,19 +1311,22 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                         className="relative group/poster cursor-pointer w-24 md:w-32 aspect-[2/3] rounded-md overflow-hidden border border-white/20 shadow-2xl"
                         onClick={() => {
                           if (selectedSearchResult.imdb_id || selectedSearchResult.id) {
-                            const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
+                            const mType = selectedSearchResult.media_type || 'movie';
+                            const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                             setSelectedMedia({
                               type: 'video',
                               url: streamUrl,
                               title: selectedSearchResult.title || selectedSearchResult.name,
                               tmdbId: selectedSearchResult.id,
                               imdbId: selectedSearchResult.imdb_id,
-                              mediaType: selectedSearchResult.media_type,
+                              mediaType: mType,
+                              isTvSeries: mType === 'tv',
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                               provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                             });
+                            setSelectedSearchResult(null);
                           }
                         }}
                       >
@@ -1422,19 +1429,22 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               return;
                             }
 
-                            const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
+                            const mType = selectedSearchResult.media_type || 'movie';
+                            const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                             setSelectedMedia({
                               type: 'video',
                               url: streamUrl,
                               title: selectedSearchResult.title || selectedSearchResult.name,
                               tmdbId: selectedSearchResult.id,
                               imdbId: selectedSearchResult.imdb_id,
-                              mediaType: selectedSearchResult.media_type,
+                              mediaType: mType,
+                              isTvSeries: mType === 'tv',
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                               provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                             });
+                            setSelectedSearchResult(null);
                           }}
                           className="flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#b20710] text-white font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-[#e50914]/20 transition-all uppercase tracking-wider cursor-pointer"
                         >

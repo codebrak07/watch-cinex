@@ -251,19 +251,22 @@ export default function FavoritesPage({ onSwitchProfile, onLogout, onHomeClick }
                       className="relative group/poster cursor-pointer w-24 md:w-32 aspect-[2/3] rounded-md overflow-hidden border border-white/20 shadow-2xl"
                       onClick={() => {
                         if (selectedSearchResult.imdb_id || selectedSearchResult.id) {
-                          const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type || 'movie'}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
+                          const mType = selectedSearchResult.media_type || 'movie';
+                          const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                           setSelectedMedia({
                             type: 'video',
                             url: streamUrl,
                             title: selectedSearchResult.title || selectedSearchResult.name,
                             tmdbId: selectedSearchResult.id,
                             imdbId: selectedSearchResult.imdb_id,
-                            mediaType: selectedSearchResult.media_type || 'movie',
+                            mediaType: mType,
+                            isTvSeries: mType === 'tv',
                             season: '1',
                             episode: '1',
                             numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                             provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                           });
+                          setSelectedSearchResult(null);
                         }
                       }}
                     >
@@ -353,19 +356,22 @@ export default function FavoritesPage({ onSwitchProfile, onLogout, onHomeClick }
                         <>
                           <button
                             onClick={() => {
-                              const streamUrl = `https://streamimdb.ru/embed/${selectedSearchResult.media_type || 'movie'}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
+                              const mType = selectedSearchResult.media_type || 'movie';
+                              const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                               setSelectedMedia({
                                 type: 'video',
                                 url: streamUrl,
                                 title: selectedSearchResult.title || selectedSearchResult.name,
                                 tmdbId: selectedSearchResult.id,
                                 imdbId: selectedSearchResult.imdb_id,
-                                mediaType: selectedSearchResult.media_type || 'movie',
+                                mediaType: mType,
+                                isTvSeries: mType === 'tv',
                                 season: '1',
                                 episode: '1',
                                 numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
                                 provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                               });
+                              setSelectedSearchResult(null);
                             }}
                             className="flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#b20710] text-white font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-[#e50914]/20 transition-all uppercase tracking-wider cursor-pointer"
                           >
