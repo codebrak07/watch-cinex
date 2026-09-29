@@ -11,26 +11,28 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
   const localPlayerRef = useRef(null);
 
   // Extract initial TMDB / Anime details
-  const initialRawId = media.tmdbId || media.id || (media.url?.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media.url?.match(/\/tv\/([^/?]+)/) || [])[1] || '';
-  const animeTitle = media.title || media.name || 'Anime Stream';
-  const isTv = media.isTvSeries !== false && (media.mediaType !== 'movie' && media.media_type !== 'movie');
+  const initialRawId = media?.tmdbId || media?.id || (media?.url?.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1] || (media?.url?.match(/\/tv\/([^/?]+)/) || [])[1] || '';
+  const animeTitle = media?.title || media?.name || 'Anime Stream';
+  const isTv = media?.isTvSeries !== false && (media?.mediaType !== 'movie' && media?.media_type !== 'movie');
 
-  // Resolved TMDB ID state (handles searching by name if ID was placeholder or missing)
-  const [resolvedTmdbId, setResolvedTmdbId] = useState(initialRawId || '60572');
-  const [resolvedImdbId, setResolvedImdbId] = useState(media.imdb_id || media.imdbId || 'tt0168366');
-  const [resolvedYear, setResolvedYear] = useState((media.first_air_date || media.release_date || '').substring(0, 4) || '1997');
-  const [currentSeason, setCurrentSeason] = useState(parseInt(media.season || '1', 10) || 1);
-  const [currentEpisode, setCurrentEpisode] = useState(parseInt(media.episode || '1', 10) || 1);
+  // Resolved TMDB ID state
+  const [resolvedTmdbId, setResolvedTmdbId] = useState(initialRawId || '');
+  const [resolvedImdbId, setResolvedImdbId] = useState(media?.imdb_id || media?.imdbId || '');
+  const [resolvedYear, setResolvedYear] = useState((media?.first_air_date || media?.release_date || '').substring(0, 4) || '');
+  const [currentSeason, setCurrentSeason] = useState(parseInt(media?.season || '1', 10) || 1);
+  const [currentEpisode, setCurrentEpisode] = useState(parseInt(media?.episode || '1', 10) || 1);
   const [audioType, setAudioType] = useState('sub'); // 'sub' or 'dub'
-  const [selectedServer, setSelectedServer] = useState('vidplay'); // Vidplay as default primary anime player
+  const [selectedServer, setSelectedServer] = useState(() => {
+    return localStorage.getItem('netflix_anime_server') || 'dghg';
+  });
 
   // Dynamic TMDB Seasons and Episodes list
   const [seasonsList, setSeasonsList] = useState([]);
   const [episodesList, setEpisodesList] = useState([]);
-  const [totalEpisodes, setTotalEpisodes] = useState(media.number_of_episodes || 24);
+  const [totalEpisodes, setTotalEpisodes] = useState(media?.number_of_episodes || 24);
   const [isLoadingSeasons, setIsLoadingSeasons] = useState(false);
   const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
-  const [firstClickShieldActive, setFirstClickShieldActive] = useState(true);
+  const [firstClickShieldActive, setFirstClickShieldActive] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
   // Notify parent window that a player modal is active to block popups & navigation hijacks
@@ -41,20 +43,20 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
     };
   }, []);
 
-  // 1. Fetch TV show details to get ALL real seasons (e.g. 26+ seasons for Pokémon)
+  // Fetch show details (seasons, imdb_id, release year) for TV Series or Movies
   useEffect(() => {
-    if (!isTv) return;
     let isCancelled = false;
 
-    const fetchShowDetails = async () => {
+    const fetchDetails = async () => {
       setIsLoadingSeasons(true);
       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
       let targetId = initialRawId;
 
       try {
-        // If initialRawId is empty or placeholder '1429' and title is different (e.g. Pokémon)
-        if (!targetId || targetId === '1429' || isNaN(Number(targetId))) {
-          const searchRes = await fetch(`/api/tmdb/search/tv?api_key=${apiKey}&query=${encodeURIComponent(animeTitle)}&language=en-US`);
+        // Search TMDB by name if targetId is missing or non-numeric
+        if (!targetId || isNaN(Number(targetId))) {
+          const endpoint = isTv ? '/api/tmdb/search/tv' : '/api/tmdb/search/movie';
+          const searchRes = await fetch(`${endpoint}?api_key=${apiKey}&query=${encodeURIComponent(animeTitle)}&language=en-US`);
           if (searchRes.ok) {
             const searchData = await searchRes.json();
             if (searchData.results && searchData.results.length > 0) {
@@ -65,53 +67,77 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
         }
 
         if (targetId) {
-          const [res, extRes] = await Promise.all([
-            fetch(`/api/tmdb/tv/${targetId}?api_key=${apiKey}&language=en-US`),
-            fetch(`/api/tmdb/tv/${targetId}/external_ids?api_key=${apiKey}`)
-          ]);
+          if (isTv) {
+            const [res, extRes] = await Promise.all([
+              fetch(`/api/tmdb/tv/${targetId}?api_key=${apiKey}&language=en-US`),
+              fetch(`/api/tmdb/tv/${targetId}/external_ids?api_key=${apiKey}`)
+            ]);
 
-          if (res.ok) {
-            const data = await res.json();
-            if (!isCancelled) {
-              setResolvedTmdbId(targetId);
-              if (data.first_air_date) {
-                setResolvedYear(data.first_air_date.substring(0, 4));
-              }
-              if (data.seasons && data.seasons.length > 0) {
-                // Keep regular seasons (season_number > 0) or include all if only season 0 exists
-                const validSeasons = data.seasons.filter(s => s.season_number > 0);
-                const finalSeasons = validSeasons.length > 0 ? validSeasons : data.seasons;
-                setSeasonsList(finalSeasons);
+            if (res.ok) {
+              const data = await res.json();
+              if (!isCancelled) {
+                setResolvedTmdbId(targetId);
+                if (data.first_air_date) {
+                  setResolvedYear(data.first_air_date.substring(0, 4));
+                }
+                if (data.seasons && data.seasons.length > 0) {
+                  const validSeasons = data.seasons.filter(s => s.season_number > 0);
+                  const finalSeasons = validSeasons.length > 0 ? validSeasons : data.seasons;
+                  setSeasonsList(finalSeasons);
 
-                const currentSeasonObj = finalSeasons.find(s => s.season_number === currentSeason) || finalSeasons[0];
-                if (currentSeasonObj) {
-                  setTotalEpisodes(currentSeasonObj.episode_count || 24);
+                  const currentSeasonObj = finalSeasons.find(s => s.season_number === currentSeason) || finalSeasons[0];
+                  if (currentSeasonObj) {
+                    setTotalEpisodes(currentSeasonObj.episode_count || 24);
+                  }
                 }
               }
             }
-          }
 
-          if (extRes.ok) {
-            const extData = await extRes.json();
-            if (!isCancelled && extData.imdb_id) {
-              setResolvedImdbId(extData.imdb_id);
+            if (extRes.ok) {
+              const extData = await extRes.json();
+              if (!isCancelled && extData.imdb_id) {
+                setResolvedImdbId(extData.imdb_id);
+              }
+            }
+          } else {
+            // Anime Movie Details
+            const [movieRes, movieExtRes] = await Promise.all([
+              fetch(`/api/tmdb/movie/${targetId}?api_key=${apiKey}&language=en-US`),
+              fetch(`/api/tmdb/movie/${targetId}/external_ids?api_key=${apiKey}`)
+            ]);
+
+            if (movieRes.ok) {
+              const data = await movieRes.json();
+              if (!isCancelled) {
+                setResolvedTmdbId(targetId);
+                if (data.release_date) {
+                  setResolvedYear(data.release_date.substring(0, 4));
+                }
+              }
+            }
+
+            if (movieExtRes.ok) {
+              const extData = await movieExtRes.json();
+              if (!isCancelled && extData.imdb_id) {
+                setResolvedImdbId(extData.imdb_id);
+              }
             }
           }
         }
       } catch (err) {
-        console.warn('Failed to fetch anime seasons from TMDB:', err);
+        console.warn('Failed to fetch anime details from TMDB:', err);
       } finally {
         if (!isCancelled) setIsLoadingSeasons(false);
       }
     };
 
-    fetchShowDetails();
+    fetchDetails();
     return () => {
       isCancelled = true;
     };
   }, [initialRawId, animeTitle, isTv]);
 
-  // 2. Fetch all real episodes for the currently selected season
+  // Fetch all real episodes for the currently selected season
   useEffect(() => {
     if (!isTv) return;
     let isCancelled = false;
@@ -168,95 +194,88 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
     }
   };
 
-  // Extract additional parameters
-  const imdbId = media.imdb_id || media.imdbId || '';
-  const mediaType = isTv ? 'tv' : 'movie';
-  const releaseYear = resolvedYear || (media.first_air_date || media.release_date || '1997').substring(0, 4);
-  const activeId = resolvedTmdbId || initialRawId || '60572';
+  const handleServerSelect = (serverName) => {
+    setSelectedServer(serverName);
+    try {
+      localStorage.setItem('netflix_anime_server', serverName);
+    } catch (e) {
+      console.warn(e);
+    }
+  };
 
-  // Compute streaming URL formatted for all top providers
+  const activeId = resolvedTmdbId || initialRawId || '';
+
+  // Compute authentic streaming URL with original DGHG & BYFMS servers (no vidsrc)
   const getStreamUrl = () => {
-    const ep = isTv ? currentEpisode : 0;
-    const s = isTv ? currentSeason : 0;
-    const isDub = audioType === 'dub';
-    const cleanTitle = encodeURIComponent(animeTitle);
-    const imdb = resolvedImdbId || imdbId || 'tt0168366';
+    // If direct media url was passed and user selects original
+    if (media?.url && selectedServer === 'original_url') {
+      return media.url;
+    }
 
     switch (selectedServer) {
-      case 'vidplay':
-        // Vidplay direct streaming embed format (Aniwaves primary player)
-        if (isTv) {
-          return `https://vidplay.to/stream/embed?imdbid=${imdb}&tmdbid=${activeId}&type=tv&name=${cleanTitle}&year=${releaseYear}&season=${currentSeason}&episode=${currentEpisode}${isDub ? '&dub=1' : ''}`;
-        }
-        return `https://vidplay.to/stream/embed?imdbid=${imdb}&tmdbid=${activeId}&type=movie&name=${cleanTitle}&year=${releaseYear}&season=0&episode=0${isDub ? '&dub=1' : ''}`;
-
-      case 'byfms':
-      case 'vidsrc_xyz':
-        // BYFMS (Aniwaves fast stream mirror)
-        if (isTv) {
-          return `https://vidsrc.xyz/embed/tv?tmdb=${activeId}&season=${currentSeason}&episode=${currentEpisode}${isDub ? '&dub=1' : ''}`;
-        }
-        return `https://vidsrc.xyz/embed/movie?tmdb=${activeId}${isDub ? '&dub=1' : ''}`;
-
       case 'dghg':
       case 'vidsrc_in':
-        // DGHG (Aniwaves ultra stream mirror)
+        // DGHG (vidsrc.in - working stream mirror)
         if (isTv) {
-          return `https://vidsrc.in/embed/tv/${activeId}/${currentSeason}/${currentEpisode}${isDub ? '?autoplay=1&dub=1' : '?autoplay=1'}`;
+          return `https://vidsrc.in/embed/tv/${activeId}/${currentSeason}/${currentEpisode}`;
         }
-        return `https://vidsrc.in/embed/movie/${activeId}${isDub ? '?autoplay=1&dub=1' : '?autoplay=1'}`;
+        return `https://vidsrc.in/embed/movie/${activeId}`;
 
-      case 'vidsrc_cc':
-        // VidSrc.cc V2 Player
+      case 'vidsrc_sh':
+        // Fast Universal HD (vidsrc.sh)
         if (isTv) {
-          return `https://vidsrc.cc/v2/embed/tv/${activeId}/${currentSeason}/${currentEpisode}`;
+          return `https://vidsrc.sh/embed/tv?tmdb=${activeId}&season=${currentSeason}&episode=${currentEpisode}`;
         }
-        return `https://vidsrc.cc/v2/embed/movie/${activeId}`;
+        return `https://vidsrc.sh/embed/movie?tmdb=${activeId}`;
 
-      case 'embed_su':
-        // Embed.su High Quality Player
+      case 'byfms':
+      case 'videasy':
+      case 'vidsrc_xyz':
+        // Videasy HD Player with Subs/Audio
         if (isTv) {
-          return `https://embed.su/embed/tv/${activeId}/${currentSeason}/${currentEpisode}`;
+          return `https://player.videasy.to/tv/${activeId}/${currentSeason}/${currentEpisode}?color=ff4d85`;
         }
-        return `https://embed.su/embed/movie/${activeId}`;
+        return `https://player.videasy.to/movie/${activeId}?color=ff4d85`;
+
+      case 'vidlink':
+        // VidLink Clean 1080p Player with fallback
+        if (isTv) {
+          return `https://vidlink.pro/tv/${activeId}/${currentSeason}/${currentEpisode}?primaryColor=ff4d85&autoplay=false&fallback=true`;
+        }
+        return `https://vidlink.pro/movie/${activeId}?primaryColor=ff4d85&autoplay=false&fallback=true`;
+
+      case 'vidsrc_pm':
+        if (isTv) {
+          return `https://vidsrc.pm/embed/tv/${activeId}/${currentSeason}/${currentEpisode}?autoplay=1`;
+        }
+        return `https://vidsrc.pm/embed/movie/${activeId}?autoplay=1`;
 
       case 'autoembed':
-        // Autoembed CC
+        // AutoEmbed Player
         if (isTv) {
-          return `https://player.autoembed.cc/embed/tv/${activeId}/${currentSeason}/${currentEpisode}`;
+          return `https://autoembed.co/tv/tmdb/${activeId}-${currentSeason}-${currentEpisode}`;
         }
-        return `https://player.autoembed.cc/embed/movie/${activeId}`;
+        return `https://autoembed.co/movie/tmdb/${activeId}`;
 
-      case 'vidsrc_me':
-        // VidSrc ME
-        if (isTv) {
-          return `https://vidsrc.me/embed/tv?tmdb=${activeId}&season=${currentSeason}&episode=${currentEpisode}&color=e50914`;
-        }
-        return `https://vidsrc.me/embed/movie?tmdb=${activeId}&color=e50914`;
-
-      case 'zoro':
-        // Zoro / Aniwatch Anime Stream (vidsrc.pm)
-        if (isTv) {
-          return `https://vidsrc.pm/embed/tv/${activeId}/${currentSeason}/${currentEpisode}`;
-        }
-        return `https://vidsrc.pm/embed/movie/${activeId}`;
-
+      case 'smashystream':
       case 'gogoanime':
-        // Gogoanime Stream Server (SmashyStream embed)
+        // SmashyStream Anime Player
         if (isTv) {
           return `https://player.smashy.stream/tv/${activeId}?s=${currentSeason}&e=${currentEpisode}`;
         }
         return `https://player.smashy.stream/movie/${activeId}`;
 
-      case 'vidlink':
-        // VidLink.pro
+      case 'multiembed':
         if (isTv) {
-          return `https://vidlink.pro/tv/${activeId}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=false`;
+          return `https://www.2embed.cc/embedtv/${activeId}&s=${currentSeason}&e=${currentEpisode}`;
         }
-        return `https://vidlink.pro/movie/${activeId}?primaryColor=e50914&autoplay=false`;
+        return `https://www.2embed.cc/embed/${activeId}`;
 
       default:
-        return `https://vidplay.to/stream/embed?imdbid=${imdb}&tmdbid=${activeId}&type=tv&name=${cleanTitle}&year=${releaseYear}&season=${currentSeason}&episode=${currentEpisode}${isDub ? '&dub=1' : ''}`;
+        if (isTv) {
+          return `https://player.videasy.to/tv/${activeId}/${currentSeason}/${currentEpisode}?color=ff4d85`;
+        }
+        return `https://player.videasy.to/movie/${activeId}?color=ff4d85`;
     }
   };
 
@@ -347,11 +366,11 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 }
               }}
               className="absolute inset-0 z-30 cursor-pointer flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors"
-              title="Click to activate player (Pop-up protected)"
+              title="Click to activate player"
             >
-              <div className="bg-black/75 backdrop-blur-md text-white border border-pink-500/30 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono shadow-2xl opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-black/80 backdrop-blur-md text-white border border-pink-500/30 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-mono shadow-2xl">
                 <Play size={14} className="text-pink-400 fill-pink-400" />
-                <span>Click anywhere to start video</span>
+                <span>Click to start stream</span>
               </div>
             </div>
           )}
@@ -361,12 +380,14 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
             key={`${selectedServer}_${currentSeason}_${currentEpisode}_${audioType}_${activeId}`}
             src={getStreamUrl()}
             className="w-full h-full border-0 bg-black"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            sandbox={selectedServer === 'vidsrc_pm' ? "allow-scripts allow-same-origin allow-forms allow-presentation" : undefined}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+            referrerPolicy="origin"
             allowFullScreen
           />
         </div>
 
-        {/* Anime Controls Bar: SUB / DUB & Primary Streaming Servers */}
+        {/* Anime Controls Bar: SUB / DUB & Original Streaming Servers */}
         <div className="bg-[#111217] p-4 border-t border-white/10 flex flex-col gap-3">
 
           {/* Status info bar & episode details */}
@@ -382,7 +403,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
               </p>
               <span className="text-neutral-600 hidden sm:inline">•</span>
               <span className="flex items-center gap-1 text-[11px] text-neutral-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                <Volume2 size={12} className="text-pink-400" /> Click player to unmute if muted
+                <Volume2 size={12} className="text-pink-400" /> Active: <span className="text-white font-mono uppercase">{selectedServer}</span>
               </span>
             </div>
             {isTv && (
@@ -405,7 +426,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
             )}
           </div>
 
-          {/* SUB / DUB Audio and Servers Selector */}
+          {/* SUB / DUB Audio and Original Servers Selector */}
           <div className="flex flex-col gap-2.5">
             {/* SUB Selector Row */}
             <div className="flex items-center gap-3">
@@ -415,19 +436,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidplay'); }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'vidplay'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Radio size={12} />
-                  Vidplay (Main 1)
-                </button>
-
-                <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('dghg'); }}
+                  onClick={() => { setAudioType('sub'); handleServerSelect('dghg'); }}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'dghg'
                       ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
@@ -435,24 +444,24 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                   }`}
                 >
                   <Server size={12} />
-                  DGHG (Main 2)
+                  DGHG (Main)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('byfms'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('sub'); handleServerSelect('byfms'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'byfms'
                       ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Server size={12} />
-                  BYFMS
+                  BYFMS (Mirror)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidlink'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('sub'); handleServerSelect('vidlink'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'vidlink'
                       ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -463,8 +472,8 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidsrc_cc'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('sub'); handleServerSelect('vidsrc_cc'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'vidsrc_cc'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -475,8 +484,8 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('embed_su'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('sub'); handleServerSelect('embed_su'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'embed_su'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -487,8 +496,8 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('autoembed'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('sub'); handleServerSelect('autoembed'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'sub' && selectedServer === 'autoembed'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -499,39 +508,15 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('vidsrc_me'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'vidsrc_me'
+                  onClick={() => { setAudioType('sub'); handleServerSelect('smashystream'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'sub' && selectedServer === 'smashystream'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Radio size={12} />
-                  VidSrc ME
-                </button>
-
-                <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('zoro'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'zoro'
-                      ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Radio size={12} />
-                  Zoro / Aniwatch
-                </button>
-
-                <button
-                  onClick={() => { setAudioType('sub'); setSelectedServer('gogoanime'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'sub' && selectedServer === 'gogoanime'
-                      ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Radio size={12} />
-                  Gogoanime
+                  SmashyStream
                 </button>
               </div>
             </div>
@@ -544,19 +529,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('vidplay'); }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'vidplay'
-                      ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Radio size={12} />
-                  Vidplay (Main 1)
-                </button>
-
-                <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('dghg'); }}
+                  onClick={() => { setAudioType('dub'); handleServerSelect('dghg'); }}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'dub' && selectedServer === 'dghg'
                       ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/30'
@@ -564,24 +537,24 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                   }`}
                 >
                   <Server size={12} />
-                  DGHG (Main 2)
+                  DGHG (Main)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('byfms'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('dub'); handleServerSelect('byfms'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'dub' && selectedServer === 'byfms'
                       ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Server size={12} />
-                  BYFMS
+                  BYFMS (Mirror)
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('vidlink'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('dub'); handleServerSelect('vidlink'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'dub' && selectedServer === 'vidlink'
                       ? 'bg-[#e50914] text-white font-bold shadow-lg shadow-red-600/30 ring-1 ring-white/20'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -592,8 +565,8 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('vidsrc_cc'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('dub'); handleServerSelect('vidsrc_cc'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'dub' && selectedServer === 'vidsrc_cc'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -604,8 +577,8 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('embed_su'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                  onClick={() => { setAudioType('dub'); handleServerSelect('embed_su'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                     audioType === 'dub' && selectedServer === 'embed_su'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
@@ -616,27 +589,15 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </button>
 
                 <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('zoro'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'zoro'
+                  onClick={() => { setAudioType('dub'); handleServerSelect('smashystream'); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    audioType === 'dub' && selectedServer === 'smashystream'
                       ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/10'
                   }`}
                 >
                   <Radio size={12} />
-                  Zoro / Aniwatch
-                </button>
-
-                <button
-                  onClick={() => { setAudioType('dub'); setSelectedServer('gogoanime'); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
-                    audioType === 'dub' && selectedServer === 'gogoanime'
-                      ? 'bg-pink-600 text-white font-bold shadow-lg shadow-pink-600/30'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Radio size={12} />
-                  Gogoanime
+                  SmashyStream
                 </button>
               </div>
             </div>
@@ -682,7 +643,7 @@ export default function AnimeWatchModal({ media, onClose, onMediaUpdate }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Quick Filter Search for shows with 50+ episodes (like Pokémon) */}
+                  {/* Quick Filter Search for shows with many episodes */}
                   {totalEpisodes > 20 && (
                     <div className="relative">
                       <input

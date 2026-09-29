@@ -1318,7 +1318,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
+                              provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                             });
                           }
                         }}
@@ -1433,7 +1433,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: window.localStorage.getItem('off_campus_provider') || 'vidsrc_pm'
+                              provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
                             });
                           }}
                           className="flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#b20710] text-white font-semibold text-sm px-4 py-2.5 rounded-lg font-sans shadow-lg hover:shadow-[#e50914]/20 transition-all uppercase tracking-wider cursor-pointer"
@@ -1478,6 +1478,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         <AnimatePresence>
           {activeAnimeMedia && (
             <AnimeWatchModal
+              key={activeAnimeMedia.id || activeAnimeMedia.tmdbId || activeAnimeMedia.title}
               media={activeAnimeMedia}
               onMediaUpdate={setActiveAnimeMedia}
               onClose={() => setActiveAnimeMedia(null)}

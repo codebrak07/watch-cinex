@@ -258,6 +258,7 @@ export default function AnimePage({ onItemClick, setSelectedMedia }) {
       <AnimatePresence>
         {activeAnimeMedia && (
           <AnimeWatchModal
+            key={activeAnimeMedia.id || activeAnimeMedia.tmdbId || activeAnimeMedia.title}
             media={activeAnimeMedia}
             onMediaUpdate={setActiveAnimeMedia}
             onClose={() => setActiveAnimeMedia(null)}
