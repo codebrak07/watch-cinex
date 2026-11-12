@@ -847,7 +847,46 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         media_type: isAnimeRoute ? 'tv' : (item.media_type || 'movie'),
         isAnime: isAnimeRoute || (item.genre_ids && item.genre_ids.includes(16) && item.original_language === 'ja')
       }));
-      setSearchResults(filtered);
+
+      // Also search NetMirror for official dubbed releases (e.g. Hindi, Tamil, Telugu, English)
+      let dubbedItems = [];
+      try {
+        const cleanQuery = query.trim().replace(/\[.*?\]|\(.*?\)/g, '');
+        const dubRes = await fetch(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanQuery)}?page=0`);
+        if (dubRes.ok) {
+          const dubData = await dubRes.json();
+          if (dubData && dubData.results && dubData.results.length > 0) {
+            dubbedItems = dubData.results
+              .filter(dItem => dItem.title && dItem.title.includes('['))
+              .map(dItem => {
+                const langMatch = dItem.title.match(/\[(.*?)\]/);
+                const lang = langMatch ? langMatch[1] : 'Dubbed';
+                return {
+                  id: `dub_${dItem.id}`,
+                  netmirrorId: dItem.id,
+                  title: dItem.title,
+                  name: dItem.title,
+                  original_title: dItem.title,
+                  poster_path: null,
+                  backdrop_path: dItem.backdrop_path,
+                  isDubbed: true,
+                  dubbedLang: lang,
+                  vote_average: parseFloat(dItem.vote_average) || 7.5,
+                  release_date: String(dItem.release_date || '2023'),
+                  first_air_date: String(dItem.release_date || '2023'),
+                  media_type: dItem.media_type || 'tv',
+                  isTvSeries: dItem.media_type !== 'movie',
+                  overview: `Watch full ${dItem.title} with official ${lang} Dubbed HD streaming audio.`,
+                  dubUrl: `/api/dubbed-player?id=${dItem.id}&se=1&ep=1&type=${dItem.media_type || 'tv'}`
+                };
+              });
+          }
+        }
+      } catch (dErr) {
+        console.warn('Dubbed search fetch failed:', dErr);
+      }
+
+      setSearchResults([...dubbedItems, ...filtered]);
     } catch (err) {
       console.error(err);
       setSearchError("Failed to fetch search results. Please check your connection.");
@@ -865,6 +904,18 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
 
   const handleSelectSearchResult = async (item) => {
     const itemMediaType = item.media_type || (item.first_air_date || item.name ? 'tv' : 'movie');
+    
+    if (item.isDubbed) {
+      setSelectedSearchResult({
+        ...item,
+        media_type: itemMediaType,
+        isLoadingNigga: false,
+        imdb_id: null,
+        cast: []
+      });
+      return;
+    }
+
     // Open modal immediately with base item details and set loading status
     setSelectedSearchResult({
       ...item,
@@ -990,12 +1041,14 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6 pb-20">
                     {searchResults.map((item, index) => {
                       const title = item.title || item.name;
-                      const posterUrl = item.poster_path
-                        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                        : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=500';
+                      const posterUrl = (item.backdrop_path && item.backdrop_path.startsWith('http'))
+                        ? item.backdrop_path
+                        : (item.poster_path
+                            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                            : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=500');
                       const year = item.release_date
-                        ? item.release_date.slice(0, 4)
-                        : (item.first_air_date ? item.first_air_date.slice(0, 4) : '');
+                        ? String(item.release_date).slice(0, 4)
+                        : (item.first_air_date ? String(item.first_air_date).slice(0, 4) : '');
 
                       return (
                         <motion.div
@@ -1009,9 +1062,16 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                             transition: { duration: 0.2 }
                           }}
                           onClick={() => handleSelectSearchResult(item)}
-                          className="bg-[#1f1f23]/60 border border-white/5 rounded-lg overflow-hidden cursor-pointer group hover:border-white/10 transition-colors shadow-lg hover:shadow-[0_10px_25px_rgba(0,0,0,0.5)]"
+                          className={`bg-[#1f1f23]/60 border rounded-lg overflow-hidden cursor-pointer group transition-colors shadow-lg hover:shadow-[0_10px_25px_rgba(0,0,0,0.5)] ${
+                            item.isDubbed ? 'border-amber-500/50 hover:border-amber-400' : 'border-white/5 hover:border-white/10'
+                          }`}
                         >
                           <div className="aspect-[2/3] relative overflow-hidden bg-zinc-900">
+                            {item.isDubbed && (
+                              <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-amber-500 to-red-600 text-white font-sans text-[10px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider flex items-center gap-1">
+                                <span>🎙️</span> {item.dubbedLang} Dub
+                              </div>
+                            )}
                             <img
                               src={posterUrl}
                               alt={title}
@@ -1291,9 +1351,11 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                   {/* Left Column: Media (Backdrop + Floating Poster) */}
                   <div className="w-full md:w-1/2 relative aspect-video md:aspect-auto md:h-full overflow-hidden bg-black flex-shrink-0">
                     <img
-                      src={selectedSearchResult.backdrop_path
-                        ? `https://image.tmdb.org/t/p/original${selectedSearchResult.backdrop_path}`
-                        : `https://image.tmdb.org/t/p/original${selectedSearchResult.poster_path}`
+                      src={selectedSearchResult.backdrop_path && selectedSearchResult.backdrop_path.startsWith('http')
+                        ? selectedSearchResult.backdrop_path
+                        : (selectedSearchResult.backdrop_path
+                          ? `https://image.tmdb.org/t/p/original${selectedSearchResult.backdrop_path}`
+                          : `https://image.tmdb.org/t/p/original${selectedSearchResult.poster_path}`)
                       }
                       alt={selectedSearchResult.title || selectedSearchResult.name}
                       className="w-full h-full object-cover opacity-60"
@@ -1310,7 +1372,46 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                       <div
                         className="relative group/poster cursor-pointer w-24 md:w-32 aspect-[2/3] rounded-md overflow-hidden border border-white/20 shadow-2xl"
                         onClick={() => {
+                          if (selectedSearchResult.isDubbed) {
+                            setSelectedMedia({
+                              type: 'video',
+                              url: selectedSearchResult.dubUrl,
+                              title: selectedSearchResult.title,
+                              dubbedLang: selectedSearchResult.dubbedLang,
+                              netmirrorId: selectedSearchResult.netmirrorId,
+                              tmdbId: selectedSearchResult.id,
+                              mediaType: selectedSearchResult.media_type || 'tv',
+                              isTvSeries: selectedSearchResult.media_type !== 'movie',
+                              isDubbed: true,
+                              season: '1',
+                              episode: '1',
+                              numberOfSeasons: 10,
+                              provider: 'vidlink'
+                            });
+                            setSelectedSearchResult(null);
+                            return;
+                          }
                           if (selectedSearchResult.imdb_id || selectedSearchResult.id) {
+                            if (selectedSearchResult.isDubbed) {
+                              setSelectedMedia({
+                                type: 'video',
+                                url: selectedSearchResult.dubUrl,
+                                title: selectedSearchResult.title,
+                                dubbedLang: selectedSearchResult.dubbedLang,
+                                netmirrorId: selectedSearchResult.netmirrorId,
+                                tmdbId: selectedSearchResult.id,
+                                mediaType: selectedSearchResult.media_type || 'tv',
+                                isTvSeries: selectedSearchResult.media_type !== 'movie',
+                                isDubbed: true,
+                                season: '1',
+                                episode: '1',
+                                numberOfSeasons: 10,
+                                provider: 'vidlink'
+                              });
+                              setSelectedSearchResult(null);
+                              return;
+                            }
+
                             const mType = selectedSearchResult.media_type || 'movie';
                             const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                             setSelectedMedia({
@@ -1324,16 +1425,18 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
+                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
                             });
                             setSelectedSearchResult(null);
                           }
                         }}
                       >
                         <img
-                          src={selectedSearchResult.poster_path
-                            ? `https://image.tmdb.org/t/p/w300${selectedSearchResult.poster_path}`
-                            : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=300'
+                          src={(selectedSearchResult.backdrop_path && selectedSearchResult.backdrop_path.startsWith('http'))
+                            ? selectedSearchResult.backdrop_path
+                            : (selectedSearchResult.poster_path
+                                ? `https://image.tmdb.org/t/p/w300${selectedSearchResult.poster_path}`
+                                : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=300')
                           }
                           alt="Poster"
                           className="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-300"
@@ -1429,6 +1532,26 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               return;
                             }
 
+                            if (selectedSearchResult.isDubbed) {
+                              setSelectedMedia({
+                                type: 'video',
+                                url: selectedSearchResult.dubUrl,
+                                title: selectedSearchResult.title,
+                                dubbedLang: selectedSearchResult.dubbedLang,
+                                netmirrorId: selectedSearchResult.netmirrorId,
+                                tmdbId: selectedSearchResult.id,
+                                mediaType: selectedSearchResult.media_type || 'tv',
+                                isTvSeries: selectedSearchResult.media_type !== 'movie',
+                                isDubbed: true,
+                                season: '1',
+                                episode: '1',
+                                numberOfSeasons: 10,
+                                provider: 'vidlink'
+                              });
+                              setSelectedSearchResult(null);
+                              return;
+                            }
+
                             const mType = selectedSearchResult.media_type || 'movie';
                             const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                             setSelectedMedia({
@@ -1442,7 +1565,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
+                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
                             });
                             setSelectedSearchResult(null);
                           }}

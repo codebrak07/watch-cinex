@@ -264,7 +264,7 @@ export default function FavoritesPage({ onSwitchProfile, onLogout, onHomeClick }
                             season: '1',
                             episode: '1',
                             numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                            provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
+                            provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
                           });
                           setSelectedSearchResult(null);
                         }
@@ -369,7 +369,7 @@ export default function FavoritesPage({ onSwitchProfile, onLogout, onHomeClick }
                                 season: '1',
                                 episode: '1',
                                 numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                                provider: window.localStorage.getItem('off_campus_provider') || 'videasy'
+                                provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
                               });
                               setSelectedSearchResult(null);
                             }}
