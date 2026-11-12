@@ -852,7 +852,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
       let dubbedItems = [];
       try {
         const cleanQuery = query.trim().replace(/\[.*?\]|\(.*?\)/g, '');
-        const dubRes = await fetch(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanQuery)}?page=0`);
+        const dubRes = await fetch(`/api/dubbed-variants?title=${encodeURIComponent(cleanQuery)}`);
         if (dubRes.ok) {
           const dubData = await dubRes.json();
           if (dubData && dubData.results && dubData.results.length > 0) {

@@ -42,6 +42,8 @@ export default async function handler(req, res) {
     const ep = urlObj.searchParams.get('ep') || '1';
     const type = urlObj.searchParams.get('type') || 'tv';
     const tmdbIdParam = urlObj.searchParams.get('tmdb_id');
+    const titleParam = urlObj.searchParams.get('title') || '';
+    const langParam = urlObj.searchParams.get('lang') || '';
     const serverPref = urlObj.searchParams.get('server') || '1';
 
     const primaryDomain = serverPref === '2' ? 'bet.watch22.shop' : 'webvp.watch21.shop';
@@ -61,10 +63,31 @@ export default async function handler(req, res) {
       if (details && details.results && details.results.length > 0) {
         item = details.results[0];
       }
-    } else if (effectiveTmdbId) {
-      const searchRes = await fetchJson(`https://api2.imdb3.shop/api/${type}/${effectiveTmdbId}`);
-      if (searchRes && searchRes.results && searchRes.results.length > 0 && searchRes.results[0].dp) {
-        item = searchRes.results[0];
+    }
+
+    // If ID was not passed, resolve directly from NetMirror related catalog using title
+    if (!item && titleParam) {
+      const cleanTitle = titleParam
+        .replace(/\[.*?\]|\(.*?\)/g, '')
+        .replace(/\bS\d+(-S\d+)?\b/gi, '')
+        .trim();
+      const relatedData = await fetchJson(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanTitle)}?page=0`);
+      if (relatedData && relatedData.results && relatedData.results.length > 0) {
+        let matched = null;
+        if (langParam && langParam !== 'default') {
+          matched = relatedData.results.find(r => r.title && r.title.toLowerCase().includes(langParam.toLowerCase()));
+        }
+        if (!matched) {
+          matched = relatedData.results.find(r => r.title && !r.title.includes('[')) ||
+                    relatedData.results.find(r => r.title && r.title.toLowerCase().includes('original')) ||
+                    relatedData.results[0];
+        }
+        if (matched && matched.id) {
+          const details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${matched.id}`);
+          if (details && details.results && details.results.length > 0) {
+            item = details.results[0];
+          }
+        }
       }
     }
 
@@ -144,6 +167,11 @@ export default async function handler(req, res) {
     cleanHtml = cleanHtml.replace(/<script[^>]*beacon\.min\.js[^>]*>[\s\S]*?<\/script>/gi, '');
     cleanHtml = cleanHtml.replace(/https:\/\/[^'"]+\/cdn-cgi\/rum[^\s'"]*/gi, '');
 
+    // Prevent ArtPlayer or NetMirror from hiding the mouse cursor
+    cleanHtml = cleanHtml.replace(/cursor\s*:\s*none\s*!important/gi, 'cursor: default !important');
+    cleanHtml = cleanHtml.replace(/cursor\s*:\s*none/gi, 'cursor: default');
+    cleanHtml = cleanHtml.replace(/\.art-hide-cursor\s*\*?/g, '.art-hide-cursor-disabled');
+
     // If external.php timer triggers (NetMirror Server 1 unavailable), seamlessly jump to fast fallback
     cleanHtml = cleanHtml.replace(
       'showLoading("Not Found", "Stream is not available.");',
@@ -171,10 +199,10 @@ export default async function handler(req, res) {
         }
 
         /* Keep mouse cursor permanently visible on screen */
-        *, *::before, *::after, html, body, .art-video-player, .artplayer-app, video, .art-mask, .art-layers, .art-layer, .art-bottom, .art-controls {
+        *, *::before, *::after, html, body, .art-video-player, .artplayer-app, video, .art-mask, .art-layers, .art-layer, .art-bottom, .art-controls, .art-hide-cursor, .art-hide-cursor * {
           cursor: default !important;
         }
-        button, a, select, input, .art-control, .art-icon, .backword, .forword, [role="button"], .art-progress {
+        button, a, select, input, .art-control, .art-icon, .backword, .forword, [role="button"], .art-progress, .art-video {
           cursor: pointer !important;
         }
 
@@ -219,6 +247,32 @@ export default async function handler(req, res) {
         }
       </style>
       <script>
+        // Ensure cursor remains visible even during playback and auto-hide
+        setInterval(function() {
+          try {
+            var hidden = document.querySelectorAll('.art-hide-cursor');
+            for (var i = 0; i < hidden.length; i++) {
+              hidden[i].classList.remove('art-hide-cursor');
+            }
+          } catch (e) {}
+        }, 150);
+
+        window.addEventListener('mousemove', function() {
+          try {
+            document.documentElement.style.cursor = 'default';
+            document.body.style.cursor = 'default';
+            var p = document.querySelector('.art-video-player');
+            if (p) {
+              p.classList.remove('art-hide-cursor');
+              p.style.cursor = 'default';
+            }
+            var v = document.querySelector('video');
+            if (v) {
+              v.style.cursor = 'pointer';
+            }
+          } catch (e) {}
+        }, true);
+
         window.addEventListener('keydown', function(e) {
           if (e.key === 'ArrowLeft') {
             if (window.art) {
@@ -239,7 +293,11 @@ export default async function handler(req, res) {
       </script>
     `;
 
-    cleanHtml = cleanHtml.replace('</head>', `${injectedCleanStyles}</head>`);
+    if (cleanHtml.includes('</head>')) {
+      cleanHtml = cleanHtml.replace('</head>', `${injectedCleanStyles}</head>`);
+    } else {
+      cleanHtml = cleanHtml + injectedCleanStyles;
+    }
 
     // Neutralize any frame-busting scripts
     cleanHtml = cleanHtml.replace(/if\s*\(\s*top\s*!==\s*self\s*\)\s*top\.location\s*=\s*self\.location;?/g, '');

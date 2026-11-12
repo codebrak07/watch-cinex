@@ -179,7 +179,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         .trim();
 
       try {
-        const res = await fetch(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanTitle)}?page=0`);
+        const res = await fetch(`/api/dubbed-variants?title=${encodeURIComponent(cleanTitle)}`);
         if (!res.ok) throw new Error('Failed to fetch audio variants');
         const data = await res.json();
         if (isCancelled) return;
@@ -669,7 +669,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                     const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || (isTv ? 'tv' : 'movie');
                     const tmdbIdVal = resolvedTmdbId || media.tmdbId || media.id || '';
                     const serverNum = currentProvider === 'netmirror_backup' ? '2' : '1';
-                    return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${tmdbIdVal}&server=${serverNum}`;
+                    const rawTitleVal = encodeURIComponent(media.title || media.name || '');
+                    const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
+                    return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${tmdbIdVal}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
                   }
 
                   let tmdbIdParam = null;
@@ -685,13 +687,15 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625');
                   const provider = (currentProvider && currentProvider !== 'videasy') ? currentProvider : 'vidlink';
                   const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
+                  const mediaTitleParam = encodeURIComponent(media.title || media.name || '');
+                  const currentLangParam = encodeURIComponent(selectedLanguage || 'default');
 
                   if (provider === 'netmirror') {
                     const netId = resolveNetmirrorId();
-                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=1`;
+                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=1&title=${mediaTitleParam}&lang=${currentLangParam}`;
                   } else if (provider === 'netmirror_backup') {
                     const netId = resolveNetmirrorId();
-                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=2`;
+                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=2&title=${mediaTitleParam}&lang=${currentLangParam}`;
                   } else if (provider === 'videasy') {
                     if (isTv || isOffCampus) {
                       return `https://player.videasy.to/tv/${id}/${currentSeason}/${currentEpisode}?color=e50914`;
@@ -762,7 +766,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const separator = base.includes('?') ? '&' : '?';
                   return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
                 })()}
-                className="w-full h-full border-0 bg-black"
+                className="w-full h-full border-0 bg-black cursor-default"
                 sandbox={currentProvider === 'vidsrc_pm' ? "allow-scripts allow-same-origin allow-forms allow-presentation" : undefined}
                 allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *"
                 allowFullScreen

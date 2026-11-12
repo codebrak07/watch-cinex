@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import dubbedPlayerHandler from './api/dubbed-player.js'
+import dubbedVariantsHandler from './api/dubbed-variants.js'
 
 function dubbedPlayerPlugin() {
   return {
@@ -13,6 +14,15 @@ function dubbedPlayerPlugin() {
             await dubbedPlayerHandler(req, res);
           } catch (err) {
             console.error('[Vite DubbedPlayer Error]:', err);
+            res.statusCode = 500;
+            res.end('Internal server error');
+          }
+          return;
+        } else if (req.url && req.url.startsWith('/api/dubbed-variants')) {
+          try {
+            await dubbedVariantsHandler(req, res);
+          } catch (err) {
+            console.error('[Vite DubbedVariants Error]:', err);
             res.statusCode = 500;
             res.end('Internal server error');
           }
