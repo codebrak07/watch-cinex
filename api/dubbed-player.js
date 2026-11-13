@@ -195,11 +195,20 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Resilient Global Cluster Fallback: if Server 1 and 2 are busy or have no stream, or Server 3 requested
+    // 3. Resilient Multi-Provider Fallback: if NetMirror Server is unavailable or title is missing
     if (!isValidPage(targetPage) || serverPref === '3') {
-      const globalUrl = isTvMedia
-        ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true`
-        : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true`;
+      const videasyUrl = isTvMedia
+        ? `https://player.videasy.to/tv/${effectiveTmdbId}/${se}/${ep}?color=e50914`
+        : `https://player.videasy.to/movie/${effectiveTmdbId}?color=e50914`;
+      const vidsrcUrl = isTvMedia
+        ? `https://vidsrc.in/embed/tv/${effectiveTmdbId}/${se}/${ep}`
+        : `https://vidsrc.in/embed/movie/${effectiveTmdbId}`;
+      const vidsrcPmUrl = isTvMedia
+        ? `https://vidsrc.pm/embed/tv/${effectiveTmdbId}/${se}/${ep}?autoplay=1`
+        : `https://vidsrc.pm/embed/movie/${effectiveTmdbId}?autoplay=1`;
+      const vidlinkUrl = isTvMedia
+        ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true&fallback=true`
+        : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true&fallback=true`;
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -234,11 +243,30 @@ export default async function handler(req, res) {
         </head>
         <body>
           <iframe
-            src="${globalUrl}"
+            id="streamFrame"
+            src="${videasyUrl}"
             allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
             allowfullscreen
             referrerpolicy="no-referrer"
           ></iframe>
+          <script>
+            // Seamless failover if primary mirror encounters any error
+            var fallbacks = ["${vidsrcUrl}", "${vidsrcPmUrl}", "${vidlinkUrl}"];
+            var fbIdx = 0;
+            window.addEventListener('message', function(e) {
+              if (
+                e.data === 'PLAYER_ERROR' ||
+                e.data === 'NOT_FOUND' ||
+                (typeof e.data === 'object' && (e.data?.type === 'PLAYER_ERROR' || e.data?.status === 'not_found' || e.data?.status === 'error'))
+              ) {
+                if (fbIdx < fallbacks.length) {
+                  var nextUrl = fallbacks[fbIdx++];
+                  var fr = document.getElementById('streamFrame');
+                  if (fr) fr.src = nextUrl;
+                }
+              }
+            });
+          </script>
         </body>
         </html>
       `);
