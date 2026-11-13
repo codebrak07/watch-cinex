@@ -627,41 +627,18 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const isTv = isTvSeries || (media.url && (media.url.includes('/tv/') || media.url.includes('media_type=tv')));
                   const isOffCampus = media.title === 'Off Campus';
 
-                  if (media.url && media.url.includes('/api/dubbed-player')) {
-                    try {
-                      const urlObj = new URL(media.url, window.location.origin);
-                      urlObj.searchParams.set('se', currentSeason.toString());
-                      urlObj.searchParams.set('ep', currentEpisode.toString());
-                      return urlObj.pathname + urlObj.search;
-                    } catch (e) {
-                      return media.url;
-                    }
-                  }
-
                   // Helper to resolve active NetMirror ID across all languages (Hindi, English, Original, etc.)
                   const resolveNetmirrorId = () => {
                     if (selectedLanguage && selectedLanguage !== 'default') {
                       const match = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
-                      if (match && match.netmirrorId) return match.netmirrorId;
+                      if (match && match.netmirrorId) return String(match.netmirrorId).replace(/^dub_/, '');
                     }
                     const orig = availableLanguages.find(v => v.lang.toLowerCase() === 'original' || v.lang.toLowerCase() === 'default');
-                    if (orig && orig.netmirrorId) return orig.netmirrorId;
-                    if (availableLanguages.length > 0 && availableLanguages[0].netmirrorId) return availableLanguages[0].netmirrorId;
-                    return media.netmirrorId || (media.url && (media.url.match(/[?&]id=([^&]+)/) || [])[1]) || '';
+                    if (orig && orig.netmirrorId) return String(orig.netmirrorId).replace(/^dub_/, '');
+                    if (availableLanguages.length > 0 && availableLanguages[0].netmirrorId) return String(availableLanguages[0].netmirrorId).replace(/^dub_/, '');
+                    const fromMedia = media.netmirrorId || (media.url && (media.url.match(/[?&]id=([^&]+)/) || [])[1]) || '';
+                    return String(fromMedia).replace(/^dub_/, '');
                   };
-
-                  // If a dubbed language (e.g. Hindi) is selected or item is a dubbed release, play direct stream via /api/dubbed-player
-                  const isDubbedActive = selectedLanguage !== 'default' || media.isDubbed;
-                  if (isDubbedActive) {
-                    const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
-                    const netId = resolveNetmirrorId();
-                    const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || (isTv ? 'tv' : 'movie');
-                    const tmdbIdVal = resolvedTmdbId || media.tmdbId || media.id || '';
-                    const serverNum = currentProvider === 'netmirror_backup' ? '2' : '1';
-                    const rawTitleVal = encodeURIComponent(media.title || media.name || '');
-                    const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
-                    return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${tmdbIdVal}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
-                  }
 
                   let tmdbIdParam = null;
                   try {
@@ -673,16 +650,15 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                     console.warn(e);
                   }
 
-                  const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625');
-                  const provider = currentProvider === 'netmirror' ? 'netmirror' : 'artplayer';
                   const netId = resolveNetmirrorId();
-                  const mType = isTv || isOffCampus ? 'tv' : 'movie';
-                  const mediaTitleParam = encodeURIComponent(media.title || media.name || '');
-                  const currentLangParam = encodeURIComponent(selectedLanguage || 'default');
+                  const serverNum = currentProvider === 'netmirror' ? '2' : '1';
+                  const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
+                  const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || media.media_type || (isTv || isOffCampus ? 'tv' : 'movie');
+                  const cleanTmdb = isOffCampus ? '273240' : String(resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625').replace(/^dub_/, '');
+                  const rawTitleVal = encodeURIComponent(media.title || media.name || '');
+                  const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
 
-                  const serverNum = provider === 'netmirror' ? '2' : '1';
-                  // ArtPlayer streaming engine powered by /api/dubbed-player (artplayer.org HTML5 video engine)
-                  return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&server=${serverNum}&title=${mediaTitleParam}&lang=${currentLangParam}`;
+                  return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${cleanTmdb}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
                 })()}
                 onError={() => {
                   // Automatic background fallback switch

@@ -962,9 +962,11 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
               .map(dItem => {
                 const langMatch = dItem.title.match(/\[(.*?)\]/);
                 const lang = langMatch ? langMatch[1] : 'Dubbed';
+                const resolvedMType = dItem.media_type || 'movie';
                 return {
                   id: `dub_${dItem.id}`,
                   netmirrorId: dItem.id,
+                  tm_id: dItem.tm_id,
                   title: dItem.title,
                   name: dItem.title,
                   original_title: dItem.title,
@@ -975,10 +977,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                   vote_average: parseFloat(dItem.vote_average) || 7.5,
                   release_date: String(dItem.release_date || '2023'),
                   first_air_date: String(dItem.release_date || '2023'),
-                  media_type: dItem.media_type || 'tv',
-                  isTvSeries: dItem.media_type !== 'movie',
+                  media_type: resolvedMType,
+                  isTvSeries: resolvedMType === 'tv',
                   overview: `Watch full ${dItem.title} with official ${lang} Dubbed HD streaming audio.`,
-                  dubUrl: `/api/dubbed-player?id=${dItem.id}&se=1&ep=1&type=${dItem.media_type || 'tv'}`
+                  dubUrl: `/api/dubbed-player?id=${dItem.id}&se=1&ep=1&type=${resolvedMType}&title=${encodeURIComponent(dItem.title)}&lang=${encodeURIComponent(lang)}`
                 };
               });
           }
@@ -1445,9 +1447,9 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                               title: selectedSearchResult.title,
                               dubbedLang: selectedSearchResult.dubbedLang,
                               netmirrorId: selectedSearchResult.netmirrorId,
-                              tmdbId: selectedSearchResult.id,
-                              mediaType: selectedSearchResult.media_type || 'tv',
-                              isTvSeries: selectedSearchResult.media_type !== 'movie',
+                              tmdbId: selectedSearchResult.tm_id || selectedSearchResult.id,
+                              mediaType: selectedSearchResult.media_type || 'movie',
+                              isTvSeries: selectedSearchResult.media_type === 'tv',
                               isDubbed: true,
                               season: '1',
                               episode: '1',
@@ -1595,9 +1597,9 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                                 title: selectedSearchResult.title,
                                 dubbedLang: selectedSearchResult.dubbedLang,
                                 netmirrorId: selectedSearchResult.netmirrorId,
-                                tmdbId: selectedSearchResult.id,
-                                mediaType: selectedSearchResult.media_type || 'tv',
-                                isTvSeries: selectedSearchResult.media_type !== 'movie',
+                                tmdbId: selectedSearchResult.tm_id || selectedSearchResult.id,
+                                mediaType: selectedSearchResult.media_type || 'movie',
+                                isTvSeries: selectedSearchResult.media_type === 'tv',
                                 isDubbed: true,
                                 season: '1',
                                 episode: '1',

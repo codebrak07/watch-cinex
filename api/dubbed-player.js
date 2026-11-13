@@ -51,21 +51,27 @@ export default async function handler(req, res) {
 
     const timestamp = Math.floor(Date.now() / 1000);
     const secret = process.env.NETMIRROR_SECRET || 'net###@@sss';
-    const effectiveTmdbId = tmdbIdParam || id || '127529';
 
     let targetPage = null;
+    let netIdToUse = String(id || '').replace(/^dub_/, '').trim();
+    let item = null;
 
     // Check if we have a direct NetMirror ID
-    let item = null;
-    let netIdToUse = id;
     if (netIdToUse && !isNaN(Number(netIdToUse))) {
-      const details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${netIdToUse}`);
+      let details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${netIdToUse}`);
+      if (!details || !details.results || details.results.length === 0) {
+        const altType = type === 'tv' ? 'movie' : 'tv';
+        const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${netIdToUse}`);
+        if (altDetails && altDetails.results && altDetails.results.length > 0) {
+          details = altDetails;
+        }
+      }
       if (details && details.results && details.results.length > 0) {
         item = details.results[0];
       }
     }
 
-    // If ID was not passed, resolve directly from NetMirror related catalog using title
+    // If ID was not passed or details not found, resolve directly from NetMirror catalog using title
     if (!item && titleParam) {
       const cleanTitle = titleParam
         .replace(/\[.*?\]|\(.*?\)/g, '')
@@ -83,13 +89,27 @@ export default async function handler(req, res) {
                     relatedData.results[0];
         }
         if (matched && matched.id) {
-          const details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${matched.id}`);
+          netIdToUse = String(matched.id).replace(/^dub_/, '').trim();
+          const targetType = matched.media_type || type;
+          let details = await fetchJson(`https://api2.imdb3.shop/api/${targetType}/${matched.id}`);
+          if (!details || !details.results || details.results.length === 0) {
+            const altType = targetType === 'tv' ? 'movie' : 'tv';
+            const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${matched.id}`);
+            if (altDetails && altDetails.results && altDetails.results.length > 0) {
+              details = altDetails;
+            }
+          }
           if (details && details.results && details.results.length > 0) {
             item = details.results[0];
           }
         }
       }
     }
+
+    const resolvedType = (item && item.media_type) || type;
+    const isTvMedia = resolvedType === 'tv';
+    const cleanTmdbId = String(tmdbIdParam || '').replace(/^dub_/, '').trim();
+    const effectiveTmdbId = (item && item.tm_id) || cleanTmdbId || (netIdToUse ? '' : '127529');
 
     function isValidPage(page) {
       if (!page || page.status !== 200 || !page.body || page.body.length < 200) return false;
@@ -106,12 +126,12 @@ export default async function handler(req, res) {
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
       const na = Buffer.from(item.title || 'Video').toString('base64');
 
-      const watchboxUrl = `https://${primaryDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${type === 'tv' ? '1' : ''}&token=&warp=`;
+      const watchboxUrl = `https://${primaryDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${isTvMedia ? '1' : ''}&token=&warp=`;
       const res1 = await fetchText(watchboxUrl, 'https://netmirror.plus/');
       if (isValidPage(res1)) {
         targetPage = res1;
       } else {
-        const fallbackUrl = `https://${fallbackDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${type === 'tv' ? '1' : ''}&token=&warp=`;
+        const fallbackUrl = `https://${fallbackDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${isTvMedia ? '1' : ''}&token=&warp=`;
         const res2 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
         if (isValidPage(res2)) {
           targetPage = res2;
@@ -124,12 +144,12 @@ export default async function handler(req, res) {
       const signTarget = `${effectiveTmdbId}:${timestamp}`;
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
 
-      const externalUrl = `https://${primaryDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
+      const externalUrl = `https://${primaryDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${resolvedType}&ts=${timestamp}&sig=${sig}&exten=`;
       const res3 = await fetchText(externalUrl, 'https://netmirror.plus/');
       if (isValidPage(res3)) {
         targetPage = res3;
       } else {
-        const fallbackUrl = `https://${fallbackDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
+        const fallbackUrl = `https://${fallbackDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${resolvedType}&ts=${timestamp}&sig=${sig}&exten=`;
         const res4 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
         if (isValidPage(res4)) {
           targetPage = res4;
@@ -138,7 +158,7 @@ export default async function handler(req, res) {
     }
 
     const nextServer = serverPref === '1' ? '2' : '1';
-    const fallbackPlayerUrl = `/api/dubbed-player?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${type}&server=${nextServer}&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}`;
+    const fallbackPlayerUrl = `/api/dubbed-player?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${resolvedType}&server=${nextServer}&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}`;
 
     if (!isValidPage(targetPage)) {
       if (serverPref === '1') {
