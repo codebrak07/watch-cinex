@@ -30,6 +30,14 @@
       "destination": "https://netmirror.plus/:path*"
     },
     {
+      "source": "/api/segment-proxy/(.*)",
+      "destination": "/api/segment-proxy"
+    },
+    {
+      "source": "/api/mpd-proxy/(.*)",
+      "destination": "/api/mpd-proxy"
+    },
+    {
       "source": "/play/index_web.mpd",
       "destination": "/api/mpd-proxy"
     },
@@ -39,6 +47,10 @@
     },
     {
       "source": "/api/index_web.mpd",
+      "destination": "/api/mpd-proxy"
+    },
+    {
+      "source": "/(.*)index_web.mpd(.*)",
       "destination": "/api/mpd-proxy"
     },
     {

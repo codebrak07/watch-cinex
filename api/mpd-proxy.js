@@ -1,4 +1,4 @@
-// MPD proxy with explicit URL, relative/absolute segment rewrite, CloudFront cookie forwarding, and CORS injection
+// MPD proxy with path-based segment rewrite, CloudFront cookie forwarding, and CORS injection
 import https from 'https';
 
 export default async function handler(req, res) {
@@ -16,16 +16,21 @@ export default async function handler(req, res) {
     const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const explicitUrl = urlObj.searchParams.get('url');
 
-    let hostParam = urlObj.searchParams.get('host') || 'https://sacdn.hakunaymatata.com';
+    let hostParam = urlObj.searchParams.get('host') || 'https://sacdn.hakunaymatata.com/dash/';
     let scParam = urlObj.searchParams.get('sc') || '';
 
     if (explicitUrl) {
       try {
-        const decoded = decodeURIComponent(explicitUrl);
-        const parsedExplicit = new URL(decoded.startsWith('http') ? decoded : `http://localhost/${decoded}`);
+        let cleanUrl = explicitUrl;
+        try { cleanUrl = decodeURIComponent(explicitUrl); } catch(e) {}
+        const parsedExplicit = new URL(cleanUrl.startsWith('http') ? cleanUrl : `http://localhost/${cleanUrl.replace(/^\//, '')}`);
         if (parsedExplicit.searchParams.get('host')) hostParam = parsedExplicit.searchParams.get('host');
         if (parsedExplicit.searchParams.get('sc')) scParam = parsedExplicit.searchParams.get('sc');
       } catch (e) {}
+    }
+
+    if (!hostParam.endsWith('/')) {
+      hostParam += '/';
     }
 
     // Always fetch authentic DASH manifest directly from netmirror.plus
@@ -48,16 +53,27 @@ export default async function handler(req, res) {
           origin = `https://${req.headers.host}`;
         }
 
-        // 1. Rewrite <BaseURL> tags in DASH manifest so chunk requests go through /api/segment-proxy with CloudFront authorization
-        let rewritten = body.replace(/<BaseURL>([^<]+)<\/BaseURL>/gi, (match, rawBase) => {
-          let fullBase = rawBase.trim();
-          return `<BaseURL>${origin}/api/segment-proxy?url=${encodeURIComponent(fullBase)}&amp;sc=${encodeURIComponent(scParam)}&amp;rel=</BaseURL>`;
-        });
+        const hostToken = Buffer.from(hostParam).toString('base64url');
+        const scToken = Buffer.from(scParam || 'none').toString('base64url');
+        const rootBase = `${origin}/api/segment-proxy/${hostToken}/${scToken}/`;
 
-        // 2. Rewrite any direct .m4s or .ts segment references
-        rewritten = rewritten.replace(/((?:https?:\/\/[^'"\s<>]+\.(?:m4s|ts)|[\w\-./]+\.(?:m4s|ts))(?:\?[^'"\s<>]*)?)/gi, (match) => {
-          let fullSegmentUrl = match;
-          return `${origin}/api/segment-proxy?url=${encodeURIComponent(fullSegmentUrl)}&sc=${encodeURIComponent(scParam)}`;
+        let rewritten = body;
+
+        // 1. Rewrite absolute <BaseURL> to our path-based segment proxy root
+        if (/<BaseURL>https?:\/\/[^<]+<\/BaseURL>/i.test(rewritten)) {
+          rewritten = rewritten.replace(/<BaseURL>https?:\/\/[^<]+<\/BaseURL>/gi, `<BaseURL>${rootBase}</BaseURL>`);
+        } else if (!/<BaseURL>/i.test(rewritten)) {
+          // If no BaseURL exists in manifest, inject the rootBase into the Period or MPD element
+          if (/<Period/i.test(rewritten)) {
+            rewritten = rewritten.replace(/<Period([^>]*)>/i, `<Period$1>\n    <BaseURL>${rootBase}</BaseURL>`);
+          } else {
+            rewritten = rewritten.replace(/<MPD([^>]*)>/i, `<MPD$1>\n  <BaseURL>${rootBase}</BaseURL>`);
+          }
+        }
+
+        // 2. Rewrite any direct absolute segment references starting with http(s)
+        rewritten = rewritten.replace(/(https?:\/\/[^'"\s<>]+\.(?:m4s|ts)(?:\?[^'"\s<>]*)?)/gi, (match) => {
+          return `${origin}/api/segment-proxy?url=${encodeURIComponent(match)}&sc=${encodeURIComponent(scParam)}`;
         });
 
         res.statusCode = proxyRes.statusCode || 200;
@@ -69,13 +85,13 @@ export default async function handler(req, res) {
         res.end(rewritten);
       });
     }).on('error', (err) => {
-      console.error('[MPD Proxy Error]', err);
+      console.error('[MPD Proxy Error]', err.message);
       res.statusCode = 502;
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.end('');
     });
   } catch (err) {
-    console.error('[MPD Proxy Exception]', err);
+    console.error('[MPD Proxy Exception]', err.message);
     res.statusCode = 500;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.end('');

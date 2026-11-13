@@ -697,10 +697,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const serverNumMap = {
                     artplayer: '1',
                     netmirror: '2',
-                    vidlink: '3',
-                    server4: '4',
-                    server5: '5',
-                    server6: '6'
+                    server4: '3',
+                    server5: '4',
+                    server6: '5',
+                    vidlink: '6'
                   };
                   const serverNum = serverNumMap[currentProvider] || '1';
                   const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());

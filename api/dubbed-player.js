@@ -68,15 +68,15 @@ export default async function handler(req, res) {
     // Priority ordering based on selected server preference
     let orderedDomains = [];
     if (serverPref === '2') {
-      orderedDomains = ['bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
+      orderedDomains = ['bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+    } else if (serverPref === '3') {
+      orderedDomains = ['webvp.watch212.shop', 'webvp.watch21.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
     } else if (serverPref === '4') {
-      orderedDomains = ['webvp.watch212.shop', 'webvp.watch21.shop', 'dv.watch22.shop', 'bet.watch22.shop', 'limit.watch22.shop'];
+      orderedDomains = ['dv.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'limit.watch22.shop'];
     } else if (serverPref === '5') {
-      orderedDomains = ['dv.watch22.shop', 'bet.watch22.shop', 'limit.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
-    } else if (serverPref === '6') {
-      orderedDomains = ['limit.watch22.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
+      orderedDomains = ['limit.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'dv.watch22.shop'];
     } else {
-      orderedDomains = ['webvp.watch21.shop', 'webvp.watch212.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+      orderedDomains = ['webvp.watch21.shop', 'bet.watch22.shop', 'webvp.watch212.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
     }
 
     let primaryDomain = orderedDomains[0];
@@ -195,8 +195,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Resilient Global Cluster Fallback: if Server 1 and 2 are busy or have no stream, or Server 3 requested
-    if (!isValidPage(targetPage) || serverPref === '3') {
+    // 3. Resilient Global Cluster Fallback: if all NetMirror mirrors are unavailable, or Server 6 (VidLink) requested
+    if (serverPref === '6' || !isValidPage(targetPage)) {
       const globalUrl = isTvMedia
         ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true&fallback=true`
         : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true&fallback=true`;
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
 
     // Rewrite any index_web.mpd in player scripts directly to our /api/mpd-proxy to ensure CORS compliance on Vercel
     cleanHtml = cleanHtml.replace(/(['"])(?:https?:\/\/[^'"]*\/)?index_web\.mpd\?/gi, '$1/api/mpd-proxy?');
-    cleanHtml = cleanHtml.replace(/index_web\.mpd\?/gi, 'api/mpd-proxy?');
+    cleanHtml = cleanHtml.replace(/(?<!\/api\/)index_web\.mpd\?/gi, '/api/mpd-proxy?');
 
     // Replace backward and forward buttons with clean, high-res inline SVG icons
     cleanHtml = cleanHtml.replace(
