@@ -665,6 +665,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : 'artplayer'));
                 }}
                 className="w-full h-full border-0 bg-black cursor-default"
+                referrerPolicy="no-referrer"
                 allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *"
                 allowFullScreen
               />

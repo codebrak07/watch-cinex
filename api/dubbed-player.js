@@ -245,11 +245,12 @@ export default async function handler(req, res) {
     cleanHtml = cleanHtml.replace(/top\.location\s*=\s*[^;]+;?/gi, '');
     cleanHtml = cleanHtml.replace(/window\.top\.location\s*=\s*[^;]+;?/gi, '');
 
-    // Inject base href so all relative media/icons resolve properly to the origin server
+    // Inject base href and no-referrer policy so media CDNs allow segment fetching without CORB
+    const headMeta = `<head><meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">`;
     if (cleanHtml.includes('<head>')) {
-      cleanHtml = cleanHtml.replace('<head>', `<head><base href="https://${primaryDomain}/play/">`);
+      cleanHtml = cleanHtml.replace('<head>', headMeta);
     } else {
-      cleanHtml = `<base href="https://${primaryDomain}/play/">` + cleanHtml;
+      cleanHtml = `<meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + cleanHtml;
     }
 
     // Clean up unnecessary NetMirror UI elements (e.g. "How To Download" button) & enhance controls
@@ -372,6 +373,8 @@ export default async function handler(req, res) {
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.statusCode = 200;
     return res.end(cleanHtml);
