@@ -5,14 +5,14 @@ import { Shield, HelpCircle, Code, Mail } from 'lucide-react';
 export default function Footer() {
   return (
     <footer className="max-w-6xl mx-auto px-4 py-16 text-neutral-400 text-xs font-sans mt-20 border-t border-white/10">
-      {/* NetMirror-style Disclaimer Banner */}
+      {/* Non-Hosting Disclaimer Banner */}
       <div className="bg-neutral-900/80 border border-neutral-800 rounded-lg p-4 mb-10 text-neutral-400 leading-relaxed text-[11px] flex flex-col gap-2">
         <div className="flex items-center gap-2 text-white font-semibold text-xs">
           <Shield size={14} className="text-[#e50914]" />
           <span>Non-Hosting & Content Disclaimer</span>
         </div>
         <p>
-          <strong className="text-neutral-200">WatchCineX</strong> does not host, store, upload, or transmit any video files, media, or copyrighted content on its servers. All movies, shows, and streams accessible through this platform are retrieved, embedded, or indexed from non-affiliated, publicly available third-party servers and streaming clusters (including ArtPlayer and NetMirror). WatchCineX operates strictly as a free, open-source indexing client and player interface.
+          <strong className="text-neutral-200">WatchCineX</strong> does not host, store, upload, or transmit any video files, media, or copyrighted content on its servers. All movies, shows, and streams accessible through this platform are retrieved, embedded, or indexed from non-affiliated, publicly available third-party servers and decentralized streaming clusters. WatchCineX operates strictly as a free, open-source indexing client and player interface.
         </p>
       </div>
 

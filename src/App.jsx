@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import NetflixHome from './components/NetflixHome';
@@ -11,6 +12,11 @@ import { AuthProvider } from './context/AuthContext';
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Reset scroll to top on every route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   const handleHomeClick = () => {
     navigate('/browse');

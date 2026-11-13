@@ -405,8 +405,8 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#e50914] hover:bg-[#b20710] border border-white/20 text-white rounded px-3 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors font-bold"
             >
-              <option value="artplayer">ArtPlayer (Server 1 / Fast)</option>
-              <option value="netmirror">ArtPlayer (Server 2 / Backup)</option>
+              <option value="artplayer">Server 1 (Primary High Speed)</option>
+              <option value="netmirror">Server 2 (Backup Cluster)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -521,7 +521,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   <h3 className="text-base md:text-xl font-bold text-white flex items-center gap-2">
                     Dubbed Audio Posters & Releases
                     <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-red-600/30 border border-red-500/40 text-red-300 font-mono">
-                      NetMirror Catalog
+                      Multi-Audio Feeds
                     </span>
                   </h3>
                   <p className="text-xs text-neutral-400">
