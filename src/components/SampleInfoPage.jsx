@@ -163,7 +163,7 @@ export default function SampleInfoPage() {
                   5. Open Source License &amp; Contributions
                 </h2>
                 <p>
-                  The front-end client architecture, layout styling, and proxy router are publicly available on GitHub. You are encouraged to review, inspect, and contribute to the repository in compliance with the project&apos;s open source license.
+                  The front-end client architecture, layout styling, and proxy router are built on modern web standards. You are welcome to collaborate and share improvements with the team.
                 </p>
               </div>
             </div>
@@ -424,57 +424,51 @@ export default function SampleInfoPage() {
 
       case '/contact-us':
         return {
-          title: 'Contact Us & Community Inquiries',
-          subtitle: 'Direct communication channels for open-source collaboration, bug reports, and DMCA notices.',
+          title: 'Contact Us & DMCA Notices',
+          subtitle: 'Direct communication channel for feedback, stream inquiries, and DMCA notifications.',
           icon: <Mail size={32} className="text-[#e50914]" />,
           content: (
             <div className="space-y-8 text-neutral-300 text-sm leading-relaxed">
               <div>
+                <h2 className="text-white text-lg font-bold mb-2">Get in Touch</h2>
                 <p>
-                  WatchCineX is maintained as an open-source community initiative. Whether you want to report a broken stream, suggest a new player capability, or send a DMCA notice, you can reach out through our official channels below.
+                  Have feedback, feature suggestions, need to report a broken stream, or have legal/DMCA inquiries? You can reach out directly to our team via email below.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a
-                  href="https://github.com/codebrak07/watch-cinex/issues"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-neutral-900 hover:bg-neutral-800/80 p-5 rounded-xl border border-neutral-800 flex flex-col justify-between gap-3 transition-colors group"
-                >
-                  <div className="flex items-center justify-between text-white font-bold text-sm">
-                    <span className="flex items-center gap-2">
-                      <Terminal size={18} className="text-[#e50914]" />
-                      GitHub Issue Tracker
-                    </span>
-                    <ExternalLink size={14} className="text-neutral-500 group-hover:text-white" />
-                  </div>
-                  <p className="text-neutral-400 text-xs">
-                    Report technical bugs, broken audio feeds, request new mirrors, or submit pull requests directly to the code repository.
-                  </p>
-                  <span className="text-red-400 text-xs font-mono font-bold group-hover:underline">
-                    github.com/codebrak07/watch-cinex &rarr;
-                  </span>
-                </a>
-
-                <div className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 flex flex-col justify-between gap-3">
-                  <span className="flex items-center gap-2 text-white font-bold text-sm">
-                    <Mail size={18} className="text-[#e50914]" />
-                    Direct Maintainer Email
+              <div className="bg-neutral-900 p-6 rounded-xl border border-neutral-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                <div className="space-y-1">
+                  <span className="flex items-center gap-2 text-white font-bold text-base">
+                    <Mail size={20} className="text-[#e50914]" />
+                    Direct Contact Email
                   </span>
                   <p className="text-neutral-400 text-xs">
-                    For DMCA notifications, index takedown requests, or private inquiries:
+                    For general support, feedback, content removal, or DMCA requests:
                   </p>
-                  <span className="text-neutral-200 font-mono text-xs select-all bg-black/60 p-2 rounded border border-neutral-800">
-                    aalekhmaheshwari@gmail.com
-                  </span>
+                  <a 
+                    href="mailto:workforchronoae@gmail.com" 
+                    className="text-white hover:text-red-400 font-mono text-sm font-semibold select-all block transition-colors mt-1"
+                  >
+                    workforchronoae@gmail.com
+                  </a>
                 </div>
+
+                <a
+                  href="mailto:workforchronoae@gmail.com"
+                  className="bg-[#e50914] hover:bg-[#b20710] text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center gap-2"
+                >
+                  <Mail size={14} />
+                  <span>Send Email</span>
+                </a>
               </div>
 
-              <div className="bg-neutral-900/40 border border-neutral-800 p-4 rounded-xl text-xs text-neutral-400 space-y-1">
-                <strong className="text-white block">Notice on Takedown Timelines:</strong>
+              <div className="bg-neutral-900/40 border border-neutral-800 p-5 rounded-xl text-xs text-neutral-400 space-y-2">
+                <strong className="text-white block text-sm">DMCA Notice Reminder:</strong>
                 <p>
-                  Index removal requests with verifiable copyright documentation are reviewed and addressed within 48 to 72 business hours.
+                  Please remember that WatchCineX does not host, upload, or control any video streams or server files. To permanently take down media, notices must be submitted directly to the third-party file hosts streaming the content.
+                </p>
+                <p>
+                  Valid index removal requests with verifiable copyright documentation sent to <strong className="text-neutral-200">workforchronoae@gmail.com</strong> are reviewed and addressed within 48 to 72 business hours.
                 </p>
               </div>
             </div>
@@ -632,15 +626,11 @@ export default function SampleInfoPage() {
               <div className="space-y-3">
                 <h2 className="text-white text-lg font-bold flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#e50914]" />
-                  Step-by-Step Contribution Workflow
+                  How to Get Involved
                 </h2>
-                <ol className="list-decimal pl-5 space-y-2 text-xs md:text-sm text-neutral-300">
-                  <li>Fork the official repository at <a href="https://github.com/codebrak07/watch-cinex" target="_blank" rel="noopener noreferrer" className="text-[#e50914] underline font-bold">github.com/codebrak07/watch-cinex</a>.</li>
-                  <li>Clone your fork locally: <code className="text-neutral-200 bg-neutral-900 px-1.5 py-0.5 rounded font-mono text-xs">git clone https://github.com/your-username/watch-cinex.git</code></li>
-                  <li>Create a feature branch: <code className="text-neutral-200 bg-neutral-900 px-1.5 py-0.5 rounded font-mono text-xs">git checkout -b feature/my-new-feature</code></li>
-                  <li>Make your enhancements, verify the build with <code className="text-neutral-200 bg-neutral-900 px-1.5 py-0.5 rounded font-mono text-xs">npm run build</code>, and push to your fork.</li>
-                  <li>Submit a Pull Request describing your improvements. We review and merge active PRs promptly!</li>
-                </ol>
+                <p className="text-xs md:text-sm text-neutral-300">
+                  We are actively building new features, responsive player improvements, and stream mirrors. If you are interested in contributing code, designing layouts, or sharing feedback, reach out to our team at <a href="mailto:workforchronoae@gmail.com" className="text-[#e50914] underline font-bold">workforchronoae@gmail.com</a>.
+                </p>
               </div>
             </div>
           )
@@ -660,7 +650,7 @@ export default function SampleInfoPage() {
                   WatchCineX is not a commercial enterprise or corporation. There are no stockholders, private equity investors, or corporate sponsors. We do not issue gift cards, vouchers, or premium subscription tiers.
                 </p>
                 <p className="text-neutral-400 text-xs">
-                  Everything developed under WatchCineX is free for all users worldwide. Enjoy the platform, share it with friends, and if you are a programmer, feel free to contribute to our code on GitHub!
+                  Everything developed under WatchCineX is free for all users worldwide. Enjoy the platform, share it with friends, and if you have feedback or ideas, feel free to reach out to us at workforchronoae@gmail.com!
                 </p>
               </div>
             </div>

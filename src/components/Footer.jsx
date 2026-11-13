@@ -37,14 +37,6 @@ export default function Footer() {
           <span className="text-white font-medium text-[13px] mb-1">About & Open Source</span>
           <Link to="/media-centre" className="hover:text-white transition-colors">About WatchCineX</Link>
           <Link to="/jobs" className="hover:text-white transition-colors">Contribute & Collaborate</Link>
-          <a 
-            href="https://github.com/codebrak07/watch-cinex" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="hover:text-white transition-colors inline-flex items-center gap-1.5"
-          >
-            GitHub Repository
-          </a>
           <Link to="/gift-cards" className="hover:text-white transition-colors">Free Forever Promise</Link>
         </div>
 
