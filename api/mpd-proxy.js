@@ -1,6 +1,5 @@
-// MPD proxy with explicit URL, relative/absolute segment rewrite, and CORS injection
+// MPD proxy with explicit URL, relative/absolute segment rewrite, CloudFront cookie forwarding, and CORS injection
 import https from 'https';
-import http from 'http';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,21 +15,23 @@ export default async function handler(req, res) {
   try {
     const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const explicitUrl = urlObj.searchParams.get('url');
-    let targetUrl = '';
+
+    let hostParam = urlObj.searchParams.get('host') || 'https://sacdn.hakunaymatata.com';
+    let scParam = urlObj.searchParams.get('sc') || '';
 
     if (explicitUrl) {
-      targetUrl = decodeURIComponent(explicitUrl);
-    } else {
-      const hostParam = urlObj.searchParams.get('host') || 'https://sacdn.hakunaymatata.com';
-      const scParam = urlObj.searchParams.get('sc') || '';
-      targetUrl = `https://netmirror.plus/play/index_web.mpd?host=${encodeURIComponent(hostParam)}&sc=${encodeURIComponent(scParam)}`;
+      try {
+        const decoded = decodeURIComponent(explicitUrl);
+        const parsedExplicit = new URL(decoded.startsWith('http') ? decoded : `http://localhost/${decoded}`);
+        if (parsedExplicit.searchParams.get('host')) hostParam = parsedExplicit.searchParams.get('host');
+        if (parsedExplicit.searchParams.get('sc')) scParam = parsedExplicit.searchParams.get('sc');
+      } catch (e) {}
     }
 
-    const client = targetUrl.startsWith('https') ? https : http;
-    const upstreamUrlObj = new URL(targetUrl);
-    const upstreamBase = `${upstreamUrlObj.protocol}//${upstreamUrlObj.host}${upstreamUrlObj.pathname.substring(0, upstreamUrlObj.pathname.lastIndexOf('/') + 1)}`;
+    // Always fetch authentic DASH manifest directly from netmirror.plus
+    const targetUrl = `https://netmirror.plus/play/index_web.mpd?host=${encodeURIComponent(hostParam)}&sc=${encodeURIComponent(scParam)}`;
 
-    client.get(targetUrl, {
+    https.get(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://netmirror.plus/',
@@ -47,13 +48,16 @@ export default async function handler(req, res) {
           origin = `https://${req.headers.host}`;
         }
 
-        // Rewrite all .m4s segment URLs (both absolute and relative) to go through our absolute /api/segment-proxy
-        let rewritten = body.replace(/((?:https?:\/\/[^'"\s<>]+\.m4s|[\w\-./]+\.m4s)(?:\?[^'"\s<>]*)?)/gi, (match) => {
+        // 1. Rewrite <BaseURL> tags in DASH manifest so chunk requests go through /api/segment-proxy with CloudFront authorization
+        let rewritten = body.replace(/<BaseURL>([^<]+)<\/BaseURL>/gi, (match, rawBase) => {
+          let fullBase = rawBase.trim();
+          return `<BaseURL>${origin}/api/segment-proxy?url=${encodeURIComponent(fullBase)}&amp;sc=${encodeURIComponent(scParam)}&amp;rel=</BaseURL>`;
+        });
+
+        // 2. Rewrite any direct .m4s or .ts segment references
+        rewritten = rewritten.replace(/((?:https?:\/\/[^'"\s<>]+\.(?:m4s|ts)|[\w\-./]+\.(?:m4s|ts))(?:\?[^'"\s<>]*)?)/gi, (match) => {
           let fullSegmentUrl = match;
-          if (!fullSegmentUrl.startsWith('http://') && !fullSegmentUrl.startsWith('https://')) {
-            fullSegmentUrl = upstreamBase + fullSegmentUrl;
-          }
-          return `${origin}/api/segment-proxy?url=${encodeURIComponent(fullSegmentUrl)}`;
+          return `${origin}/api/segment-proxy?url=${encodeURIComponent(fullSegmentUrl)}&sc=${encodeURIComponent(scParam)}`;
         });
 
         res.statusCode = proxyRes.statusCode || 200;

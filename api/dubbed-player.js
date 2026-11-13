@@ -308,6 +308,7 @@ export default async function handler(req, res) {
         (function() {
           var appOrigin = window.location.origin;
           var upstreamPlayBase = 'https://${primaryDomain}/play/';
+          var cachedSc = '';
 
           function rewriteUrl(inputUrl) {
             if (!inputUrl || typeof inputUrl !== 'string') return inputUrl;
@@ -322,16 +323,28 @@ export default async function handler(req, res) {
 
               // Route DASH manifests through our origin's MPD proxy with CORS
               if (resolved.includes('index_web.mpd') || resolved.includes('.mpd')) {
+                try {
+                  var pUrl = new URL(resolved);
+                  if (pUrl.searchParams.get('sc')) {
+                    cachedSc = pUrl.searchParams.get('sc');
+                  }
+                } catch(e) {}
                 if (!resolved.includes('/api/mpd-proxy')) {
                   return appOrigin + '/api/mpd-proxy?url=' + encodeURIComponent(resolved);
                 }
               }
-              // Route video chunks through our origin's segment proxy with CORS
+
+              // Route video chunks through our origin's segment proxy with CORS and CloudFront authorization
               if (resolved.includes('.m4s') || resolved.includes('.ts')) {
                 if (!resolved.includes('/api/segment-proxy')) {
-                  return appOrigin + '/api/segment-proxy?url=' + encodeURIComponent(resolved);
+                  var segUrl = appOrigin + '/api/segment-proxy?url=' + encodeURIComponent(resolved);
+                  if (cachedSc) {
+                    segUrl += '&sc=' + encodeURIComponent(cachedSc);
+                  }
+                  return segUrl;
                 }
               }
+
               // Route any external stream/CDN requests that lack CORS
               if (
                 resolved.includes('flooderrr.store') ||
@@ -358,9 +371,9 @@ export default async function handler(req, res) {
           };
 
           var originalOpen = XMLHttpRequest.prototype.open;
-          XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-            url = rewriteUrl(url);
-            return originalOpen.call(this, method, url, async !== false, user, password);
+          XMLHttpRequest.prototype.open = function(method, url) {
+            arguments[1] = rewriteUrl(url);
+            return originalOpen.apply(this, arguments);
           };
         })();
       </script>

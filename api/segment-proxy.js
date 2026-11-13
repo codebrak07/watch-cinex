@@ -1,4 +1,4 @@
-// Segment Proxy for MPEG-DASH and HLS video chunks (.m4s, .ts, etc.)
+// Segment Proxy for MPEG-DASH and HLS video chunks (.m4s, .ts, etc.) with CloudFront Cookie authorization
 import https from 'https';
 import http from 'http';
 
@@ -16,19 +16,39 @@ export default async function handler(req, res) {
   try {
     const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const urlParam = urlObj.searchParams.get('url');
+    const scParam = urlObj.searchParams.get('sc');
+    const relParam = urlObj.searchParams.get('rel');
+
     if (!urlParam) {
       res.statusCode = 400;
       return res.end('Missing url parameter');
     }
 
-    const targetUrl = decodeURIComponent(urlParam);
+    let targetUrl = decodeURIComponent(urlParam);
+    if (relParam) {
+      targetUrl = targetUrl.endsWith('/') ? targetUrl + relParam : targetUrl + '/' + relParam;
+    }
+
     const client = targetUrl.startsWith('https') ? https : http;
+
+    let cookieHeader = '';
+    if (scParam) {
+      try {
+        cookieHeader = Buffer.from(scParam, 'base64').toString('utf8');
+      } catch (e) {
+        cookieHeader = scParam;
+      }
+    }
 
     const requestHeaders = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Referer': 'https://netmirror.plus/',
       'Accept': '*/*'
     };
+
+    if (cookieHeader) {
+      requestHeaders['Cookie'] = cookieHeader;
+    }
 
     if (req.headers.range) {
       requestHeaders['Range'] = req.headers.range;
