@@ -130,6 +130,43 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     return () => { isCancelled = true; };
   }, [mediaId, media.title, isTvSeries]);
 
+  // Fetch TMDB Movie ID if mediaId is dubbed or non-numeric
+  useEffect(() => {
+    if (isTvSeries) return;
+    let isCancelled = false;
+
+    const fetchMovieId = async () => {
+      let rawId = String(mediaId || '');
+      let targetId = rawId.replace(/^dub_/, '');
+
+      if (!targetId || targetId === '99999' || isNaN(Number(targetId)) || rawId.startsWith('dub_')) {
+        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+        const cleanTitle = (media.title || media.name || '')
+          .replace(/\[.*?\]|\(.*?\)/g, '')
+          .replace(/\bS\d+(-S\d+)?\b/gi, '')
+          .trim();
+
+        try {
+          const searchRes = await fetch(`/api/tmdb/search/movie?api_key=${apiKey}&query=${encodeURIComponent(cleanTitle)}&language=en-US`);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (searchData.results && searchData.results.length > 0) {
+              const bestMatch = searchData.results[0];
+              if (!isCancelled) {
+                setResolvedTmdbId(bestMatch.id.toString());
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to resolve movie TMDB ID:', e);
+        }
+      }
+    };
+
+    fetchMovieId();
+    return () => { isCancelled = true; };
+  }, [mediaId, media.title, isTvSeries]);
+
   // Fetch TMDB TV episodes for current season
   useEffect(() => {
     if (!isTvSeries) return;
@@ -407,6 +444,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             >
               <option value="artplayer">Server 1 (Primary High Speed)</option>
               <option value="netmirror">Server 2 (Backup Cluster)</option>
+              <option value="vidlink">Server 3 (Global High Speed)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -651,7 +689,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   }
 
                   const netId = resolveNetmirrorId();
-                  const serverNum = currentProvider === 'netmirror' ? '2' : '1';
+                  const serverNum = currentProvider === 'vidlink' ? '3' : (currentProvider === 'netmirror' ? '2' : '1');
                   const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
                   const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || media.media_type || (isTv || isOffCampus ? 'tv' : 'movie');
                   const cleanTmdb = isOffCampus ? '273240' : String(resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625').replace(/^dub_/, '');
@@ -662,7 +700,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 })()}
                 onError={() => {
                   // Automatic background fallback switch
-                  setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : 'artplayer'));
+                  setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : (prev === 'netmirror' ? 'vidlink' : 'artplayer')));
                 }}
                 className="w-full h-full border-0 bg-black cursor-default"
                 referrerPolicy="no-referrer"

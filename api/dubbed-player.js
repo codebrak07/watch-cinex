@@ -110,17 +110,27 @@ export default async function handler(req, res) {
     const isTvMedia = resolvedType === 'tv';
     const cleanTmdbId = String(tmdbIdParam || '').replace(/^dub_/, '').trim();
     const effectiveTmdbId = (item && item.tm_id) || cleanTmdbId || (netIdToUse ? '' : '127529');
+    const nextServer = serverPref === '1' ? '2' : (serverPref === '2' ? '3' : '1');
+    const fallbackPlayerUrl = `/api/dubbed-player?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${resolvedType}&server=${nextServer}&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}`;
 
     function isValidPage(page) {
       if (!page || page.status !== 200 || !page.body || page.body.length < 200) return false;
       const b = page.body;
-      if (b.includes('Server Busy') || b.includes('Time not Found') || b.includes('Not Found. or Come from listed Website.') || b.includes('const qualities = [];')) {
+      if (
+        b.includes('Server Busy') || 
+        b.includes('Time not Found') || 
+        b.includes('Not Found. or Come from listed Website.') || 
+        b.includes('const qualities = [];') ||
+        b.includes('qualities = [];') ||
+        b.includes('Server 1 did not send WATCHBOX_READY') ||
+        b.includes('Server 2 did not send WATCHBOX_READY')
+      ) {
         return false;
       }
       return true;
     }
 
-    if (item && item.dp) {
+    if (serverPref !== '3' && item && item.dp) {
       // 1. Play via watchbox.php with DP token (Used for all NetMirror dubbed/original releases)
       const signTarget = `${item.tm_id || effectiveTmdbId}:${timestamp}`;
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
@@ -140,7 +150,7 @@ export default async function handler(req, res) {
     }
 
     // 2. If watchbox is unavailable or failed (e.g. Server Busy), fall back to external.php on primary & fallback domains
-    if (!isValidPage(targetPage)) {
+    if (serverPref !== '3' && !isValidPage(targetPage)) {
       const signTarget = `${effectiveTmdbId}:${timestamp}`;
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
 
@@ -157,37 +167,50 @@ export default async function handler(req, res) {
       }
     }
 
-    const nextServer = serverPref === '1' ? '2' : '1';
-    const fallbackPlayerUrl = `/api/dubbed-player?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${resolvedType}&server=${nextServer}&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}`;
+    // 3. Resilient Global Cluster Fallback: if Server 1 and 2 are busy or have no stream, or Server 3 requested
+    if (!isValidPage(targetPage) || serverPref === '3') {
+      const globalUrl = isTvMedia
+        ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true`
+        : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true`;
 
-    if (!isValidPage(targetPage)) {
-      if (serverPref === '1') {
-        res.writeHead(302, { 'Location': fallbackPlayerUrl });
-        return res.end();
-      }
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Referrer-Policy', 'no-referrer');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.statusCode = 200;
       return res.end(`
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+          <meta name="referrer" content="no-referrer">
+          <title>Stream Player</title>
           <style>
-            body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-            .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 32px; border-radius: 16px; max-width: 400px; }
-            h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
-            p { color: #a3a3a3; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
-            .btn { background: #e50914; color: #fff; padding: 10px 24px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; text-decoration: none; font-size: 0.85rem; display: inline-block; transition: background 0.2s; }
-            .btn:hover { background: #b80710; }
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+              background: #000;
+            }
+            iframe {
+              width: 100%;
+              height: 100%;
+              border: 0;
+              display: block;
+              background: #000;
+            }
           </style>
         </head>
         <body>
-          <div class="card">
-            <h2>Connecting Stream Cluster</h2>
-            <p>The stream server is initializing playback. Click below to reconnect.</p>
-            <a class="btn" href="?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${type}&server=1&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}">
-              Reconnect Stream
-            </a>
-          </div>
+          <iframe
+            src="${globalUrl}"
+            allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
+            allowfullscreen
+            referrerpolicy="no-referrer"
+          ></iframe>
         </body>
         </html>
       `);
