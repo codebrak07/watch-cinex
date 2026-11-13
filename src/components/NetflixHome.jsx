@@ -773,7 +773,7 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
       setIsSearching(true);
       setSearchError(null);
       try {
-        const watchmodeKey = 'QR6FoVmsrRYNf3jcEph0eTdiF8AvG2tQlxzOqefK';
+        const watchmodeKey = import.meta.env.VITE_WATCHMODE_API_KEY || '';
         // 1. Search Watchmode by name
         const searchRes = await fetch(`https://api.watchmode.com/v1/search/?apiKey=${watchmodeKey}&search_field=name&search_value=${encodeURIComponent('Off Campus')}`);
         if (!searchRes.ok) throw new Error("Watchmode search failed");

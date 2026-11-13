@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const fallbackDomain = serverPref === '2' ? 'webvp.watch21.shop' : 'bet.watch22.shop';
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const secret = 'net###@@sss';
+    const secret = process.env.NETMIRROR_SECRET || 'net###@@sss';
     const effectiveTmdbId = tmdbIdParam || id || '127529';
 
     let targetPage = null;
