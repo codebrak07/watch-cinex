@@ -46,8 +46,30 @@ export default async function handler(req, res) {
     const langParam = urlObj.searchParams.get('lang') || '';
     const serverPref = urlObj.searchParams.get('server') || '1';
 
-    const primaryDomain = serverPref === '2' ? 'bet.watch22.shop' : 'webvp.watch21.shop';
-    const fallbackDomain = serverPref === '2' ? 'webvp.watch21.shop' : 'bet.watch22.shop';
+    // Fallback domains pool for playback
+    const candidateDomains = [
+      'webvp.watch21.shop',
+      'webvp.watch212.shop',
+      'bet.watch22.shop',
+      'dv.watch22.shop',
+      'limit.watch22.shop'
+    ];
+
+    // Priority ordering based on selected server preference
+    let orderedDomains = [];
+    if (serverPref === '2') {
+      orderedDomains = ['bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
+    } else if (serverPref === '4') {
+      orderedDomains = ['webvp.watch212.shop', 'webvp.watch21.shop', 'dv.watch22.shop', 'bet.watch22.shop', 'limit.watch22.shop'];
+    } else if (serverPref === '5') {
+      orderedDomains = ['dv.watch22.shop', 'bet.watch22.shop', 'limit.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
+    } else if (serverPref === '6') {
+      orderedDomains = ['limit.watch22.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop'];
+    } else {
+      orderedDomains = ['webvp.watch21.shop', 'webvp.watch212.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+    }
+
+    let primaryDomain = orderedDomains[0];
 
     const timestamp = Math.floor(Date.now() / 1000);
     const secret = process.env.NETMIRROR_SECRET || 'net###@@sss';
@@ -136,33 +158,29 @@ export default async function handler(req, res) {
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
       const na = Buffer.from(item.title || 'Video').toString('base64');
 
-      const watchboxUrl = `https://${primaryDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${isTvMedia ? '1' : ''}&token=&warp=`;
-      const res1 = await fetchText(watchboxUrl, 'https://netmirror.plus/');
-      if (isValidPage(res1)) {
-        targetPage = res1;
-      } else {
-        const fallbackUrl = `https://${fallbackDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${isTvMedia ? '1' : ''}&token=&warp=`;
-        const res2 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
-        if (isValidPage(res2)) {
-          targetPage = res2;
+      for (const domain of orderedDomains) {
+        const watchboxUrl = `https://${domain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${isTvMedia ? '1' : ''}&token=&warp=`;
+        const resCandidate = await fetchText(watchboxUrl, 'https://netmirror.plus/');
+        if (isValidPage(resCandidate)) {
+          targetPage = resCandidate;
+          primaryDomain = domain;
+          break;
         }
       }
     }
 
-    // 2. If watchbox is unavailable or failed (e.g. Server Busy), fall back to external.php on primary & fallback domains
+    // 2. If watchbox is unavailable or failed (e.g. Server Busy), fall back to external.php across candidate domains
     if (serverPref !== '3' && !isValidPage(targetPage)) {
       const signTarget = `${effectiveTmdbId}:${timestamp}`;
       const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
 
-      const externalUrl = `https://${primaryDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${resolvedType}&ts=${timestamp}&sig=${sig}&exten=`;
-      const res3 = await fetchText(externalUrl, 'https://netmirror.plus/');
-      if (isValidPage(res3)) {
-        targetPage = res3;
-      } else {
-        const fallbackUrl = `https://${fallbackDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${resolvedType}&ts=${timestamp}&sig=${sig}&exten=`;
-        const res4 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
-        if (isValidPage(res4)) {
-          targetPage = res4;
+      for (const domain of orderedDomains) {
+        const externalUrl = `https://${domain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${resolvedType}&ts=${timestamp}&sig=${sig}&exten=`;
+        const resCandidate = await fetchText(externalUrl, 'https://netmirror.plus/');
+        if (isValidPage(resCandidate)) {
+          targetPage = resCandidate;
+          primaryDomain = domain;
+          break;
         }
       }
     }

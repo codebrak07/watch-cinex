@@ -49,12 +49,14 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
   const [currentProvider, setCurrentProvider] = useState(() => {
     const saved = window.localStorage.getItem('off_campus_provider');
-    if (saved === 'netmirror' || saved === 'artplayer') return saved;
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
+    if (validProviders.includes(saved)) return saved;
     return 'artplayer';
   });
 
   useEffect(() => {
-    if (media.provider === 'netmirror' || media.provider === 'artplayer') {
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
+    if (validProviders.includes(media.provider)) {
       setCurrentProvider(media.provider);
     }
   }, [media.provider]);
@@ -198,7 +200,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   // Validate and set sensible default provider
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    const validProviders = ['artplayer', 'netmirror'];
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
     if (!saved || !validProviders.includes(saved)) {
       localStorage.setItem('off_campus_provider', 'artplayer');
     }
@@ -442,9 +444,12 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#e50914] hover:bg-[#b20710] border border-white/20 text-white rounded px-3 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors font-bold"
             >
-              <option value="artplayer">Server 1 (Primary High Speed)</option>
-              <option value="netmirror">Server 2 (Backup Cluster)</option>
-              <option value="vidlink">Server 3 (Global High Speed)</option>
+              <option value="artplayer">Server 1 (webvp.watch21)</option>
+              <option value="netmirror">Server 2 (bet.watch22)</option>
+              <option value="server4">Server 3 (webvp.watch212)</option>
+              <option value="server5">Server 4 (dv.watch22)</option>
+              <option value="server6">Server 5 (limit.watch22)</option>
+              <option value="vidlink">Server 6 (Global High Speed)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -689,7 +694,15 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   }
 
                   const netId = resolveNetmirrorId();
-                  const serverNum = currentProvider === 'vidlink' ? '3' : (currentProvider === 'netmirror' ? '2' : '1');
+                  const serverNumMap = {
+                    artplayer: '1',
+                    netmirror: '2',
+                    vidlink: '3',
+                    server4: '4',
+                    server5: '5',
+                    server6: '6'
+                  };
+                  const serverNum = serverNumMap[currentProvider] || '1';
                   const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
                   const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || media.media_type || (isTv || isOffCampus ? 'tv' : 'movie');
                   const cleanTmdb = isOffCampus ? '273240' : String(resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625').replace(/^dub_/, '');
