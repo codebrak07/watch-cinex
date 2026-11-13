@@ -19,18 +19,28 @@ function fetchJson(targetUrl) {
 }
 
 function fetchText(targetUrl, referer = 'https://netmirror.plus/') {
-  return new Promise((resolve, reject) => {
-    https.get(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': referer,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      }
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: d }));
-    }).on('error', reject);
+  return new Promise((resolve) => {
+    try {
+      const req = https.get(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': referer,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        },
+        timeout: 5000
+      }, res => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: d }));
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({ status: 408, body: '' });
+      });
+      req.on('error', () => resolve({ status: 500, body: '' }));
+    } catch {
+      resolve({ status: 500, body: '' });
+    }
   });
 }
 
