@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import dubbedPlayerHandler from './api/dubbed-player.js'
 import dubbedVariantsHandler from './api/dubbed-variants.js'
+import mpdProxyHandler from './api/mpd-proxy.js'
 
 function dubbedPlayerPlugin() {
   return {
@@ -25,6 +26,15 @@ function dubbedPlayerPlugin() {
             console.error('[Vite DubbedVariants Error]:', err);
             res.statusCode = 500;
             res.end('Internal server error');
+          }
+          return;
+        } else if (req.url && (req.url.startsWith('/api/mpd-proxy') || req.url.includes('index_web.mpd'))) {
+          try {
+            await mpdProxyHandler(req, res);
+          } catch (err) {
+            console.error('[Vite MPD Proxy Error]:', err);
+            res.statusCode = 500;
+            res.end('');
           }
           return;
         }
