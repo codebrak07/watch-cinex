@@ -1,5 +1,6 @@
 // MPD proxy with path-based segment rewrite, CloudFront cookie forwarding, and CORS injection
 import https from 'https';
+import { httpsAgent } from './dns-resolver.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
     const targetUrl = `https://netmirror.plus/play/index_web.mpd?host=${encodeURIComponent(hostParam)}&sc=${encodeURIComponent(scParam)}`;
 
     https.get(targetUrl, {
+      agent: httpsAgent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://netmirror.plus/',

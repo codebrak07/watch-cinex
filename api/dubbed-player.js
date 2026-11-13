@@ -1,13 +1,16 @@
 import https from 'https';
 import crypto from 'crypto';
+import { httpsAgent } from './dns-resolver.js';
 
 function fetchJson(targetUrl) {
   return new Promise((resolve) => {
     https.get(targetUrl, {
+      agent: httpsAgent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         'Referer': 'https://netmirror.plus/'
-      }
+      },
+      timeout: 3000
     }, res => {
       let d = '';
       res.on('data', c => d += c);
@@ -22,12 +25,13 @@ function fetchText(targetUrl, referer = 'https://netmirror.plus/') {
   return new Promise((resolve) => {
     try {
       const req = https.get(targetUrl, {
+        agent: httpsAgent,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Referer': referer,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         },
-        timeout: 5000
+        timeout: 3000
       }, res => {
         let d = '';
         res.on('data', c => d += c);
@@ -56,27 +60,27 @@ export default async function handler(req, res) {
     const langParam = urlObj.searchParams.get('lang') || '';
     const serverPref = urlObj.searchParams.get('server') || '1';
 
-    // Fallback domains pool for playback
+    // Verified live NetMirror playback mirrors
     const candidateDomains = [
-      'webvp.watch21.shop',
-      'webvp.watch212.shop',
       'bet.watch22.shop',
+      'webvp.watch21.shop',
       'dv.watch22.shop',
-      'limit.watch22.shop'
+      'limit.watch22.shop',
+      'netmirror.plus'
     ];
 
     // Priority ordering based on selected server preference
     let orderedDomains = [];
     if (serverPref === '2') {
-      orderedDomains = ['bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+      orderedDomains = ['bet.watch22.shop', 'webvp.watch21.shop', 'dv.watch22.shop', 'limit.watch22.shop', 'netmirror.plus'];
     } else if (serverPref === '3') {
-      orderedDomains = ['webvp.watch212.shop', 'webvp.watch21.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+      orderedDomains = ['dv.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'limit.watch22.shop', 'netmirror.plus'];
     } else if (serverPref === '4') {
-      orderedDomains = ['dv.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'limit.watch22.shop'];
+      orderedDomains = ['limit.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'dv.watch22.shop', 'netmirror.plus'];
     } else if (serverPref === '5') {
-      orderedDomains = ['limit.watch22.shop', 'bet.watch22.shop', 'webvp.watch21.shop', 'webvp.watch212.shop', 'dv.watch22.shop'];
+      orderedDomains = ['netmirror.plus', 'bet.watch22.shop', 'webvp.watch21.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
     } else {
-      orderedDomains = ['webvp.watch21.shop', 'bet.watch22.shop', 'webvp.watch212.shop', 'dv.watch22.shop', 'limit.watch22.shop'];
+      orderedDomains = ['webvp.watch21.shop', 'bet.watch22.shop', 'dv.watch22.shop', 'limit.watch22.shop', 'netmirror.plus'];
     }
 
     let primaryDomain = orderedDomains[0];

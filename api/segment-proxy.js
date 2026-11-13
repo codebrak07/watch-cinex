@@ -1,6 +1,7 @@
 // Segment Proxy for MPEG-DASH and HLS video chunks (.m4s, .ts, etc.) with CloudFront authorization and CORS
 import https from 'https';
 import http from 'http';
+import { httpsAgent } from './dns-resolver.js';
 
 function extractCookie(scParam) {
   if (!scParam || scParam === 'none') return '';
@@ -95,16 +96,17 @@ export default async function handler(req, res) {
       requestHeaders['Range'] = req.headers.range;
     }
 
-    const proxyReq = client.get(targetUrl, { headers: requestHeaders }, (proxyRes) => {
+    const proxyReq = client.get(targetUrl, { headers: requestHeaders, agent: client === https ? httpsAgent : undefined }, (proxyRes) => {
       res.statusCode = proxyRes.statusCode || 200;
 
-      const forwardHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control'];
+      const forwardHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
       for (const h of forwardHeaders) {
         if (proxyRes.headers[h]) {
           res.setHeader(h, proxyRes.headers[h]);
         }
       }
 
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', '*');

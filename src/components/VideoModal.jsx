@@ -446,9 +446,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             >
               <option value="artplayer">Server 1 (webvp.watch21)</option>
               <option value="netmirror">Server 2 (bet.watch22)</option>
-              <option value="server4">Server 3 (webvp.watch212)</option>
-              <option value="server5">Server 4 (dv.watch22)</option>
-              <option value="server6">Server 5 (limit.watch22)</option>
+              <option value="server4">Server 3 (dv.watch22)</option>
+              <option value="server5">Server 4 (limit.watch22)</option>
+              <option value="server6">Server 5 (netmirror.plus)</option>
               <option value="vidlink">Server 6 (Global High Speed)</option>
             </select>
 

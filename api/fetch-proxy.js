@@ -1,6 +1,7 @@
 // Generic Fetch Proxy for all cross-origin stream assets and manifests
 import https from 'https';
 import http from 'http';
+import { httpsAgent } from './dns-resolver.js';
 
 export default async function handler(req, res) {
   // CORS Preflight
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       requestHeaders['Range'] = req.headers.range;
     }
 
-    client.get(decodedTarget, { headers: requestHeaders }, (proxyRes) => {
+    client.get(decodedTarget, { headers: requestHeaders, agent: client === https ? httpsAgent : undefined }, (proxyRes) => {
       res.statusCode = proxyRes.statusCode || 200;
 
       const forwardHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control'];
