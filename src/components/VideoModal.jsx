@@ -49,19 +49,19 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
   const [currentProvider, setCurrentProvider] = useState(() => {
     const saved = window.localStorage.getItem('off_campus_provider');
-    const validProviders = ['artplayer', 'videasy', 'vidsrc_in', 'vidsrc_pm', 'autoembed', 'vidlink'];
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
     if (validProviders.includes(saved)) return saved;
     return 'artplayer';
   });
 
   useEffect(() => {
-    const validProviders = ['artplayer', 'videasy', 'vidsrc_in', 'vidsrc_pm', 'autoembed', 'vidlink'];
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
     if (validProviders.includes(media.provider)) {
       setCurrentProvider(media.provider);
     }
   }, [media.provider]);
 
-  // Background fallback listener: if player emits an error, seamlessly switch to next provider
+  // Background fallback listener: if player emits an error, seamlessly switch in bg
   useEffect(() => {
     const handlePlayerMessage = (e) => {
       if (
@@ -69,11 +69,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
         e.data === 'NOT_FOUND' ||
         (typeof e.data === 'object' && (e.data?.type === 'PLAYER_ERROR' || e.data?.status === 'not_found' || e.data?.status === 'error'))
       ) {
-        setCurrentProvider(prev => {
-          const list = ['artplayer', 'videasy', 'vidsrc_in', 'vidsrc_pm', 'autoembed', 'vidlink'];
-          const idx = list.indexOf(prev);
-          return list[(idx + 1) % list.length];
-        });
+        setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : 'artplayer'));
       }
     };
     window.addEventListener('message', handlePlayerMessage);
@@ -204,7 +200,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   // Validate and set sensible default provider
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    const validProviders = ['artplayer', 'videasy', 'vidsrc_in', 'vidsrc_pm', 'autoembed', 'vidlink'];
+    const validProviders = ['artplayer', 'netmirror', 'server4', 'server5', 'server6', 'vidlink'];
     if (!saved || !validProviders.includes(saved)) {
       localStorage.setItem('off_campus_provider', 'artplayer');
     }
@@ -448,12 +444,12 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#e50914] hover:bg-[#b20710] border border-white/20 text-white rounded px-3 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors font-bold"
             >
-              <option value="artplayer">Server 1 (NetMirror VIP Dubbed/Original)</option>
-              <option value="videasy">Server 2 (Videasy Cloud High Speed)</option>
-              <option value="vidsrc_in">Server 3 (VidSrc Ultra Global)</option>
-              <option value="vidsrc_pm">Server 4 (VidSrc Prime Cinema)</option>
-              <option value="autoembed">Server 5 (AutoEmbed Fast Backup)</option>
-              <option value="vidlink">Server 6 (VidLink 1080p Fallback)</option>
+              <option value="artplayer">Server 1 (webvp.watch21)</option>
+              <option value="netmirror">Server 2 (bet.watch22)</option>
+              <option value="server4">Server 3 (webvp.watch212)</option>
+              <option value="server5">Server 4 (dv.watch22)</option>
+              <option value="server6">Server 5 (limit.watch22)</option>
+              <option value="vidlink">Server 6 (Global High Speed)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -698,49 +694,26 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   }
 
                   const netId = resolveNetmirrorId();
+                  const serverNumMap = {
+                    artplayer: '1',
+                    netmirror: '2',
+                    vidlink: '3',
+                    server4: '4',
+                    server5: '5',
+                    server6: '6'
+                  };
+                  const serverNum = serverNumMap[currentProvider] || '1';
                   const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
                   const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || media.media_type || (isTv || isOffCampus ? 'tv' : 'movie');
                   const cleanTmdb = isOffCampus ? '273240' : String(resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625').replace(/^dub_/, '');
                   const rawTitleVal = encodeURIComponent(media.title || media.name || '');
                   const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
 
-                  // Direct routing for high-speed global clusters
-                  if (currentProvider === 'videasy') {
-                    return isTv
-                      ? `https://player.videasy.to/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?color=e50914`
-                      : `https://player.videasy.to/movie/${cleanTmdb}?color=e50914`;
-                  }
-                  if (currentProvider === 'vidsrc_in') {
-                    return isTv
-                      ? `https://vidsrc.in/embed/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}`
-                      : `https://vidsrc.in/embed/movie/${cleanTmdb}`;
-                  }
-                  if (currentProvider === 'vidsrc_pm') {
-                    return isTv
-                      ? `https://vidsrc.pm/embed/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?autoplay=1`
-                      : `https://vidsrc.pm/embed/movie/${cleanTmdb}?autoplay=1`;
-                  }
-                  if (currentProvider === 'autoembed') {
-                    return isTv
-                      ? `https://autoembed.co/tv/tmdb/${cleanTmdb}-${currentSeason}-${currentEpisode}`
-                      : `https://autoembed.co/movie/tmdb/${cleanTmdb}`;
-                  }
-                  if (currentProvider === 'vidlink') {
-                    return isTv
-                      ? `https://vidlink.pro/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true&fallback=true`
-                      : `https://vidlink.pro/movie/${cleanTmdb}?primaryColor=e50914&autoplay=true&fallback=true`;
-                  }
-
-                  // Server 1: NetMirror VIP via local CORS & MPD/segment proxy
-                  return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${cleanTmdb}&server=1&title=${rawTitleVal}&lang=${rawLangVal}`;
+                  return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${cleanTmdb}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
                 })()}
                 onError={() => {
-                  // Automatic background fallback switch to next working provider
-                  setCurrentProvider(prev => {
-                    const list = ['artplayer', 'videasy', 'vidsrc_in', 'vidsrc_pm', 'autoembed', 'vidlink'];
-                    const idx = list.indexOf(prev);
-                    return list[(idx + 1) % list.length];
-                  });
+                  // Automatic background fallback switch
+                  setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : (prev === 'netmirror' ? 'vidlink' : 'artplayer')));
                 }}
                 className="w-full h-full border-0 bg-black cursor-default"
                 referrerPolicy="no-referrer"
