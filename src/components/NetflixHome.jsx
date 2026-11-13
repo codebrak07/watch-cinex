@@ -499,6 +499,13 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
   const [activeAnimeMedia, setActiveAnimeMedia] = useState(null);
   const [categories, setCategories] = useState([]);
   const [heroMovie, setHeroMovie] = useState(null);
+  const [continueWatchingItems, setContinueWatchingItems] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Active Profile & In-App Landing state on /browse
   const [activeProfile, setActiveProfile] = useState(() => {
@@ -522,6 +529,49 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
   const [isFavorite, setIsFavorite] = useState(false);
   const [languagesList, setLanguagesList] = useState([]);
 
+  // Auto-sanitize existing continue watching list: fetch real TMDB covers and purge dummy placeholder items
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
+    if (stored.length > 0) {
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+      let hasChanges = false;
+      const promises = stored.map(async (item) => {
+        const isDummyPhoto = !item.thumb || item.thumb.includes('unsplash.com') || item.thumb.includes('1594909122845');
+        const cleanId = String(item.id || item.tmdbId || '').replace(/^dub_/, '');
+        if (isDummyPhoto && cleanId && !isNaN(Number(cleanId)) && cleanId !== '99999') {
+          try {
+            const mType = item.media_type || 'movie';
+            const res = await fetch(`/api/tmdb/${mType}/${cleanId}?api_key=${apiKey}&language=en-US`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && (data.backdrop_path || data.poster_path)) {
+                hasChanges = true;
+                return {
+                  ...item,
+                  id: cleanId,
+                  tmdbId: cleanId,
+                  title: data.title || data.name || item.title,
+                  thumb: `https://image.tmdb.org/t/p/w500${data.backdrop_path || data.poster_path}`,
+                  backdrop_path: data.backdrop_path,
+                  poster_path: data.poster_path
+                };
+              }
+            }
+          } catch (e) {}
+        }
+        return item;
+      });
+
+      Promise.all(promises).then(updatedItems => {
+        const cleanItems = updatedItems.filter(it => it.id !== 99999 && it.id !== '99999' && !String(it.thumb || '').includes('unsplash.com'));
+        if (hasChanges || cleanItems.length !== stored.length) {
+          localStorage.setItem('netflix_continue_watching', JSON.stringify(cleanItems));
+          setContinueWatchingItems(cleanItems);
+        }
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedSearchResult) {
       const favs = JSON.parse(localStorage.getItem('netflix_favorites') || '[]');
@@ -533,18 +583,56 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
   useEffect(() => {
     if (selectedMedia) {
       const history = JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
-      const filtered = history.filter(item => item.id !== selectedMedia.tmdbId && item.id !== selectedMedia.id);
+      const targetTmdbId = String(selectedMedia.tmdbId || selectedMedia.id || '').replace(/^dub_/, '');
+      const filtered = history.filter(item => String(item.id).replace(/^dub_/, '') !== targetTmdbId);
+
+      const mType = selectedMedia.mediaType || selectedMedia.media_type || 'movie';
+      const bg = selectedMedia.backdrop_path || selectedMedia.backdropPath;
+      const poster = selectedMedia.poster_path || selectedMedia.posterPath;
+      let directThumb = selectedMedia.thumb && !selectedMedia.thumb.includes('unsplash.com') 
+        ? selectedMedia.thumb 
+        : (bg ? `https://image.tmdb.org/t/p/w500${bg}` : (poster ? `https://image.tmdb.org/t/p/w500${poster}` : ''));
 
       const newHistoryItem = {
-        id: selectedMedia.tmdbId || selectedMedia.id || 99999,
-        title: selectedMedia.title,
-        thumb: selectedMedia.thumb || (selectedMedia.backdropPath ? `https://image.tmdb.org/t/p/w500${selectedMedia.backdropPath}` : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=500'),
-        media_type: selectedMedia.mediaType || 'movie',
-        progress: Math.floor(Math.random() * 40) + 30
+        id: targetTmdbId || selectedMedia.id,
+        tmdbId: targetTmdbId,
+        title: selectedMedia.title || selectedMedia.name || 'Movie',
+        thumb: directThumb,
+        backdrop_path: bg,
+        poster_path: poster,
+        media_type: mType,
+        progress: Math.floor(Math.random() * 35) + 35
       };
 
       const updated = [newHistoryItem, ...filtered].slice(0, 10);
       localStorage.setItem('netflix_continue_watching', JSON.stringify(updated));
+      setContinueWatchingItems(updated);
+
+      // If no poster was passed upfront, fetch real TMDB cover asynchronously and update
+      if (!directThumb && targetTmdbId && !isNaN(Number(targetTmdbId)) && targetTmdbId !== '99999') {
+        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+        fetch(`/api/tmdb/${mType}/${targetTmdbId}?api_key=${apiKey}&language=en-US`)
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data && (data.backdrop_path || data.poster_path)) {
+              newHistoryItem.thumb = `https://image.tmdb.org/t/p/w500${data.backdrop_path || data.poster_path}`;
+              newHistoryItem.backdrop_path = data.backdrop_path;
+              newHistoryItem.poster_path = data.poster_path;
+              newHistoryItem.title = data.title || data.name || newHistoryItem.title;
+              const cur = JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
+              const idx = cur.findIndex(it => String(it.id) === String(newHistoryItem.id));
+              if (idx > -1) {
+                cur[idx] = newHistoryItem;
+              } else {
+                cur.unshift(newHistoryItem);
+              }
+              const finalHistory = cur.slice(0, 10);
+              localStorage.setItem('netflix_continue_watching', JSON.stringify(finalHistory));
+              setContinueWatchingItems(finalHistory);
+            }
+          })
+          .catch(e => console.warn('Failed to fetch TMDB cover for continue watching:', e));
+      }
     }
   }, [selectedMedia]);
 
@@ -983,8 +1071,7 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
     }
   };
 
-  const continueWatchingItems = JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
-  const displayCategories = continueWatchingItems.length > 0
+  const displayCategories = continueWatchingItems && continueWatchingItems.length > 0
     ? [{ title: "Continue Watching", items: continueWatchingItems, isContinueWatching: true }, ...categories]
     : categories;
 
@@ -1138,7 +1225,12 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                         url: streamUrl,
                         title: heroMovie.title || heroMovie.name,
                         tmdbId: heroMovie.id,
-                        mediaType: 'movie'
+                        mediaType: heroMovie.media_type || 'movie',
+                        backdrop_path: heroMovie.backdrop_path,
+                        poster_path: heroMovie.poster_path,
+                        thumb: heroMovie.backdrop_path 
+                          ? `https://image.tmdb.org/t/p/w500${heroMovie.backdrop_path}` 
+                          : (heroMovie.poster_path ? `https://image.tmdb.org/t/p/w500${heroMovie.poster_path}` : null)
                       });
                     }
                   }}
@@ -1233,7 +1325,11 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       e.target.onerror = null;
-                                      e.target.src = "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=400";
+                                      if (item.poster_path) {
+                                        e.target.src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+                                      } else if (item.backdrop_path) {
+                                        e.target.src = `https://image.tmdb.org/t/p/w500${item.backdrop_path}`;
+                                      }
                                     }}
                                   />
                                   {/* Red progress bar at the bottom */}
@@ -1338,6 +1434,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                       <div
                         className="relative group/poster cursor-pointer w-24 md:w-32 aspect-[2/3] rounded-md overflow-hidden border border-white/20 shadow-2xl"
                         onClick={() => {
+                          const thumbImg = selectedSearchResult.backdrop_path 
+                            ? `https://image.tmdb.org/t/p/w500${selectedSearchResult.backdrop_path}` 
+                            : (selectedSearchResult.poster_path ? `https://image.tmdb.org/t/p/w500${selectedSearchResult.poster_path}` : null);
+
                           if (selectedSearchResult.isDubbed) {
                             setSelectedMedia({
                               type: 'video',
@@ -1352,32 +1452,15 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                               season: '1',
                               episode: '1',
                               numberOfSeasons: 10,
-                              provider: 'vidlink'
+                              provider: 'vidlink',
+                              backdrop_path: selectedSearchResult.backdrop_path,
+                              poster_path: selectedSearchResult.poster_path,
+                              thumb: thumbImg
                             });
                             setSelectedSearchResult(null);
                             return;
                           }
                           if (selectedSearchResult.imdb_id || selectedSearchResult.id) {
-                            if (selectedSearchResult.isDubbed) {
-                              setSelectedMedia({
-                                type: 'video',
-                                url: selectedSearchResult.dubUrl,
-                                title: selectedSearchResult.title,
-                                dubbedLang: selectedSearchResult.dubbedLang,
-                                netmirrorId: selectedSearchResult.netmirrorId,
-                                tmdbId: selectedSearchResult.id,
-                                mediaType: selectedSearchResult.media_type || 'tv',
-                                isTvSeries: selectedSearchResult.media_type !== 'movie',
-                                isDubbed: true,
-                                season: '1',
-                                episode: '1',
-                                numberOfSeasons: 10,
-                                provider: 'vidlink'
-                              });
-                              setSelectedSearchResult(null);
-                              return;
-                            }
-
                             const mType = selectedSearchResult.media_type || 'movie';
                             const streamUrl = `https://streamimdb.ru/embed/${mType}/${selectedSearchResult.imdb_id || selectedSearchResult.id}?tmdb_id=${selectedSearchResult.id}`;
                             setSelectedMedia({
@@ -1391,7 +1474,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
+                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink',
+                              backdrop_path: selectedSearchResult.backdrop_path,
+                              poster_path: selectedSearchResult.poster_path,
+                              thumb: thumbImg
                             });
                             setSelectedSearchResult(null);
                           }
@@ -1498,6 +1584,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                               return;
                             }
 
+                            const thumbImg = selectedSearchResult.backdrop_path 
+                              ? `https://image.tmdb.org/t/p/w500${selectedSearchResult.backdrop_path}` 
+                              : (selectedSearchResult.poster_path ? `https://image.tmdb.org/t/p/w500${selectedSearchResult.poster_path}` : null);
+
                             if (selectedSearchResult.isDubbed) {
                               setSelectedMedia({
                                 type: 'video',
@@ -1512,7 +1602,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                                 season: '1',
                                 episode: '1',
                                 numberOfSeasons: 10,
-                                provider: 'vidlink'
+                                provider: 'vidlink',
+                                backdrop_path: selectedSearchResult.backdrop_path,
+                                poster_path: selectedSearchResult.poster_path,
+                                thumb: thumbImg
                               });
                               setSelectedSearchResult(null);
                               return;
@@ -1531,7 +1624,10 @@ export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, on
                               season: '1',
                               episode: '1',
                               numberOfSeasons: selectedSearchResult.number_of_seasons || 10,
-                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink'
+                              provider: (window.localStorage.getItem('off_campus_provider') && window.localStorage.getItem('off_campus_provider') !== 'videasy') ? window.localStorage.getItem('off_campus_provider') : 'vidlink',
+                              backdrop_path: selectedSearchResult.backdrop_path,
+                              poster_path: selectedSearchResult.poster_path,
+                              thumb: thumbImg
                             });
                             setSelectedSearchResult(null);
                           }}
