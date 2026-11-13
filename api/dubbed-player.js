@@ -271,9 +271,11 @@ export default async function handler(req, res) {
       `'<div class="forword" title="Forward 10s"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.9));"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><text x="12" y="15.5" font-size="7.5" font-weight="900" fill="white" stroke="none" text-anchor="middle" font-family="system-ui, sans-serif">10</text></svg></div>'`
     );
 
-    // Block ad scripts and popunder networks to eliminate Cross-Origin Read Block (CORB)
-    cleanHtml = cleanHtml.replace(/<script[^>]*\b(ad|banner|popcash|popunder|syndication|clickadu|juicyads|propellerads|exoclick|histats|google-analytics|doubleclick)[^>]*>[\s\S]*?<\/script>/gi, '');
-    cleanHtml = cleanHtml.replace(/<iframe[^>]*\b(ad|banner|popcash|popunder|syndication)[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    // Block ad scripts, popunder networks, analytics and bot-detection (Adscore/Yandex) to eliminate CORB and 403s
+    cleanHtml = cleanHtml.replace(/<script[^>]*\b(ad|banner|popcash|popunder|syndication|clickadu|juicyads|propellerads|exoclick|histats|google-analytics|doubleclick|adscore|yandex|metrika)[^>]*>[\s\S]*?<\/script>/gi, '');
+    cleanHtml = cleanHtml.replace(/<iframe[^>]*\b(ad|banner|popcash|popunder|syndication|adscore)[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    cleanHtml = cleanHtml.replace(/<link[^>]*\b(yandex|adscore)[^>]*>/gi, '');
+    cleanHtml = cleanHtml.replace(/https?:\/\/[^'"]*\b(yandex\.ru|adscore\.com)[^'"]*/gi, '');
 
     // Ensure full permissions policy on any nested iframe (resolves Permissions policy violation: encrypted-media)
     cleanHtml = cleanHtml.replace('<iframe id="serverFrame"', '<iframe id="serverFrame" allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *" allowfullscreen');
@@ -300,12 +302,66 @@ export default async function handler(req, res) {
     cleanHtml = cleanHtml.replace(/top\.location\s*=\s*[^;]+;?/gi, '');
     cleanHtml = cleanHtml.replace(/window\.top\.location\s*=\s*[^;]+;?/gi, '');
 
+    // Interceptor script to reroute manifest (.mpd), chunks (.m4s), and cross-origin video calls through our CORS proxy
+    const corsInterceptorScript = `
+      <script>
+        (function() {
+          function rewriteUrl(inputUrl) {
+            if (!inputUrl || typeof inputUrl !== 'string') return inputUrl;
+            try {
+              var resolved = new URL(inputUrl, document.baseURI).href;
+              // Route DASH manifests through local MPD proxy with CORS
+              if (resolved.includes('index_web.mpd') || resolved.includes('.mpd')) {
+                if (!resolved.includes('/api/mpd-proxy')) {
+                  return '/api/mpd-proxy?url=' + encodeURIComponent(resolved);
+                }
+              }
+              // Route video chunks through local segment proxy with CORS
+              if (resolved.includes('.m4s') || resolved.includes('.ts')) {
+                if (!resolved.includes('/api/segment-proxy')) {
+                  return '/api/segment-proxy?url=' + encodeURIComponent(resolved);
+                }
+              }
+              // Route any external stream/CDN requests that lack CORS
+              if (
+                resolved.includes('flooderrr.store') ||
+                resolved.includes('hakunaymatata.com') ||
+                resolved.includes('watch21.shop') ||
+                resolved.includes('watch22.shop')
+              ) {
+                if (!resolved.includes('/api/fetch-proxy') && !resolved.includes('/api/mpd-proxy') && !resolved.includes('/api/segment-proxy')) {
+                  return '/api/fetch-proxy?url=' + encodeURIComponent(resolved);
+                }
+              }
+            } catch(e) {}
+            return inputUrl;
+          }
+
+          var originalFetch = window.fetch;
+          window.fetch = function(resource, init) {
+            if (typeof resource === 'string') {
+              resource = rewriteUrl(resource);
+            } else if (resource && resource.url) {
+              resource = new Request(rewriteUrl(resource.url), resource);
+            }
+            return originalFetch.call(this, resource, init);
+          };
+
+          var originalOpen = XMLHttpRequest.prototype.open;
+          XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+            url = rewriteUrl(url);
+            return originalOpen.call(this, method, url, async !== false, user, password);
+          };
+        })();
+      </script>
+    `;
+
     // Inject base href and no-referrer policy so media CDNs allow segment fetching without CORB
-    const headMeta = `<head><meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">`;
+    const headMeta = `<head><meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + corsInterceptorScript;
     if (cleanHtml.includes('<head>')) {
       cleanHtml = cleanHtml.replace('<head>', headMeta);
     } else {
-      cleanHtml = `<meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + cleanHtml;
+      cleanHtml = `<meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + corsInterceptorScript + cleanHtml;
     }
 
     // Clean up unnecessary NetMirror UI elements (e.g. "How To Download" button) & enhance controls

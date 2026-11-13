@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import dubbedPlayerHandler from './api/dubbed-player.js'
 import dubbedVariantsHandler from './api/dubbed-variants.js'
 import mpdProxyHandler from './api/mpd-proxy.js'
+import segmentProxyHandler from './api/segment-proxy.js'
+import fetchProxyHandler from './api/fetch-proxy.js'
 
 function dubbedPlayerPlugin() {
   return {
@@ -33,6 +35,24 @@ function dubbedPlayerPlugin() {
             await mpdProxyHandler(req, res);
           } catch (err) {
             console.error('[Vite MPD Proxy Error]:', err);
+            res.statusCode = 500;
+            res.end('');
+          }
+          return;
+        } else if (req.url && req.url.startsWith('/api/segment-proxy')) {
+          try {
+            await segmentProxyHandler(req, res);
+          } catch (err) {
+            console.error('[Vite Segment Proxy Error]:', err);
+            res.statusCode = 500;
+            res.end('');
+          }
+          return;
+        } else if (req.url && req.url.startsWith('/api/fetch-proxy')) {
+          try {
+            await fetchProxyHandler(req, res);
+          } catch (err) {
+            console.error('[Vite Fetch Proxy Error]:', err);
             res.statusCode = 500;
             res.end('');
           }
