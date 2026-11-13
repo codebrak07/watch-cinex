@@ -394,6 +394,34 @@ export default async function handler(req, res) {
           } catch(e) {}
         })();
 
+        // Auto-detect stuck video buffering / loading errors and notify parent modal
+        (function() {
+          var loadTimer = setTimeout(function() {
+            var v = document.querySelector('video');
+            if (v && v.readyState < 2 && v.paused) {
+              console.warn('[DubbedPlayer] Stream playback stalled, notifying parent');
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage('PLAYER_ERROR', '*');
+              }
+            }
+          }, 8000);
+
+          document.addEventListener('DOMContentLoaded', function() {
+            var v = document.querySelector('video');
+            if (v) {
+              v.addEventListener('error', function() {
+                console.warn('[DubbedPlayer] Video element error caught');
+                if (window.parent && window.parent !== window) {
+                  window.parent.postMessage('PLAYER_ERROR', '*');
+                }
+              });
+              v.addEventListener('playing', function() {
+                clearTimeout(loadTimer);
+              });
+            }
+          });
+        })();
+
         // Ensure cursor remains visible even during playback and auto-hide
         setInterval(function() {
           try {
