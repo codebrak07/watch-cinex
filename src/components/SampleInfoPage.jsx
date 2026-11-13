@@ -1,362 +1,501 @@
+import React from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Film, HelpCircle, Gift, ShieldAlert, FileText, Info, PhoneCall } from 'lucide-react';
+import { ArrowLeft, Shield, FileText, HelpCircle, Volume2, Database, Mail, Code, Info, Heart, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 import logoImg from '../assets/cinex.png';
-
+import Footer from './Footer';
 
 export default function SampleInfoPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
 
-  // Map route path to specific header/content titles and descriptions
-  const getPageDetails = () => {
+  const getPageData = () => {
     switch (path) {
-      case '/audio-description':
-        return {
-          title: 'Audio Description',
-          icon: <Film size={36} className="text-[#e50914]" />,
-          description: 'Audio Description provides audio narration of visual elements in television programs and movies for individuals who are blind or visually impaired.',
-          details: 'You can access Audio Descriptions for selected titles by playing a video and selecting Audio Description in the Audio & Subtitles controls. Most titles with audio descriptions are labeled with the AD icon. Additionally, our accessibility framework works across native players, Smart TVs, streaming sticks, gaming consoles, and mobile clients. We continuously test with screen readers such as VoiceOver and TalkBack to optimize speech synthesis, pacing, volume ducking, and track availability globally in over 30 languages.'
-        };
-      case '/investor-relations':
-        return {
-          title: 'Investor Relations',
-          icon: <FileText size={36} className="text-[#e50914]" />,
-          description: 'Get key financial updates, stockholder communications, and public reports for Netflix stock investors and market analysts.',
-          details: 'Here you will find our latest quarterly results, SEC filings (including Forms 10-K and 10-Q), corporate governance profiles, and calendars of upcoming investor events. We are committed to transparency, sharing our performance metrics, paid subscription additions, operating margins, free cash flow generation, content spend projections, and executive compensation structures. Browse our archival webcasts and presentations dating back over a decade.'
-        };
       case '/legal-notices':
         return {
-          title: 'Legal Notices',
-          icon: <ShieldAlert size={36} className="text-[#e50914]" />,
-          description: 'Official announcements, third-party software notifications, copyright information, and trademarks related to Netflix services.',
-          details: 'By using the service, you agree to comply with all relevant legal restrictions, intellectual property guidelines, and local regulations. This page hosts notices regarding proprietary software algorithms, video codecs licensing (HEVC, AV1), audio technologies (Dolby Atmos), open source library credits, patent portfolios, trademark usage regulations, and instructions for reporting potential copyright infringements or illegal content.'
+          title: 'DMCA & Content Disclaimer',
+          subtitle: 'Important legal notices regarding content hosting, indexing, and copyright compliance.',
+          icon: <Shield size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div className="bg-red-950/30 border border-red-800/40 p-4 rounded-lg flex items-start gap-3">
+                <AlertTriangle size={20} className="text-[#e50914] shrink-0 mt-0.5" />
+                <p className="text-neutral-200 text-xs md:text-sm">
+                  <strong>Notice:</strong> WatchCineX does not host, store, or upload any video files, movies, TV episodes, or media on its servers. We do not own the content played through this platform. All media is retrieved, embedded, or streamed directly from non-affiliated third-party servers and public streaming clusters.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">1. Non-Hosting & Indexing Policy</h2>
+                <p>
+                  WatchCineX operates strictly as a modern web-based player client and media indexer. None of the video streams, media files, audio tracks, or subtitles available on this website are stored on or transmitted through our own physical or cloud servers. All video playback URLs are loaded from external, public third-party services (such as NetMirror, ArtPlayer, and public CDN clusters).
+                </p>
+                <p className="mt-2">
+                  As an indexer and player wrapper, WatchCineX has no control over the content, availability, licensing, or terms of third-party streaming providers.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">2. Copyright & DMCA Takedown Procedure</h2>
+                <p>
+                  We fully respect the intellectual property rights of copyright holders and content creators. If your copyrighted work is accessible via a link on our platform, please recognize that because WatchCineX does not host or store any media, issuing a takedown to us will not remove the video from the Internet or from the third-party server hosting it.
+                </p>
+                <p className="mt-2">
+                  To permanently remove infringing material, copyright owners must submit takedown notices directly to the file host or streaming server where the media actually resides.
+                </p>
+                <p className="mt-2">
+                  If you would like a specific indexing reference or title metadata link removed from WatchCineX, you may contact our open source maintainers via our contact page or open an issue on our official GitHub repository with valid proof of ownership and the exact URL in question.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">3. Trademark Disclaimers</h2>
+                <p>
+                  All trademarks, service marks, trade names, trade dress, product names, and logos appearing on the site are the property of their respective owners. Their use on WatchCineX is solely for descriptive, identification, and research purposes and does not imply endorsement, affiliation, or sponsorship.
+                </p>
+              </div>
+            </div>
+          )
         };
-      case '/help-centre':
-        return {
-          title: 'Help Centre',
-          icon: <HelpCircle size={36} className="text-[#e50914]" />,
-          description: 'Search our FAQs, find troubleshooting guides, check service statuses, or learn how to optimize your streaming setup.',
-          details: 'Find help with billing inquiries, account settings, supported devices, streaming quality issues, or password resets. Get quick fixes for common error codes (e.g., UI-800-3, NW-2-5, TVQ-details-menu-100), read user guides on managing parental controls, download diagnostic tools for network speed tests, and view step-by-step guides for connecting devices to your home Wi-Fi.'
-        };
-      case '/jobs':
-        return {
-          title: 'Jobs at Netflix',
-          icon: <Info size={36} className="text-[#e50914]" />,
-          description: 'Join a culture of freedom and responsibility where we work with extraordinary talent to shape the future of entertainment.',
-          details: 'Explore career openings in engineering, content creation, legal, marketing, design, and operations worldwide. Learn about our unique workplace values, including extreme ownership, radical candor, compensation at the top of personal market, and our dream-team philosophy. We offer comprehensive wellness programs, flexible parental leave, dedicated development budgets, and opportunities to lead industry-defining innovations.'
-        };
-      case '/cookie-preferences':
-        return {
-          title: 'Cookie Preferences',
-          icon: <Info size={36} className="text-[#e50914]" />,
-          description: 'Manage your privacy settings, cookies, tracking tokens, and personalization settings for this web application.',
-          details: 'We use cookies to analyze site traffic, personalize content and recommendations, and serve relevant promotional ads. Essential cookies are required to manage user sessions and remember security configurations. Functional and analytics cookies help us measure system performance and page loading speed to optimize UI layout. Advertising cookies allow partner networks to build profiles of your interests to present tailored messages elsewhere.'
-        };
-      case '/gift-cards':
-        return {
-          title: 'Gift Cards & Redemptions',
-          icon: <Gift size={36} className="text-[#e50914]" />,
-          description: 'Buy digital or physical Netflix Gift Cards, or redeem them directly on your account to cover subscription costs.',
-          details: 'Simply enter your 11-digit or 15-digit code to apply the balance directly to your next billing cycle. No credit card required. Gift cards can be purchased at thousands of retail locations or online through authorized digital storefronts. Note that gift card balances do not expire, are non-refundable, and will automatically apply to whatever tier level (Standard, Premium, or Basic) is currently configured on your profile.'
-        };
+
       case '/terms-of-use':
         return {
-          title: 'Terms of Use',
-          icon: <FileText size={36} className="text-[#e50914]" />,
-          description: 'Our Terms of Use govern your use of the Netflix service, including software features, account rules, and membership pricing.',
-          details: 'Make sure to review sections covering billing cancellation, user profiles, communication settings, and binding arbitration. By initiating a membership, you agree that you are over 18, that the service is strictly for personal, non-commercial use, and that we may update subscription rates or licensing limitations by providing prior notification via email.'
+          title: 'Terms of Service',
+          subtitle: 'Terms governing the access and non-commercial use of the WatchCineX web platform.',
+          icon: <FileText size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">1. Acceptance of Terms</h2>
+                <p>
+                  By accessing or using WatchCineX, you agree to be bound by these Terms of Service. WatchCineX is a free, open-source software project created strictly for educational, research, and personal entertainment purposes.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">2. 100% Free & No Subscriptions</h2>
+                <p>
+                  WatchCineX does not charge any subscription fees, membership dues, or payments of any kind. We will never ask for your credit card, bank account, or payment details. Any website claiming to charge for WatchCineX is fraudulent.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">3. User Responsibility & Compliance</h2>
+                <p>
+                  You are solely responsible for ensuring that your access and use of third-party streaming links complies with the laws, intellectual property statutes, and regulations applicable in your country or jurisdiction. WatchCineX does not endorse, encourage, or facilitate unauthorized distribution of copyrighted media.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">4. Disclaimer of Warranties</h2>
+                <p>
+                  The platform and its player interfaces are provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis without warranties of any kind, whether express or implied. WatchCineX makes no representations regarding the uptime, speed, audio availability, or uninterrupted accessibility of third-party video clusters.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">5. Open Source Collaboration</h2>
+                <p>
+                  WatchCineX is open source. You are welcome to review, inspect, fork, and contribute to our codebase via GitHub in accordance with the project&apos;s open source license.
+                </p>
+              </div>
+            </div>
+          )
         };
-      case '/corporate-information':
-        return {
-          title: 'Corporate Information',
-          icon: <Info size={36} className="text-[#e50914]" />,
-          description: 'Standard registry numbers, tax information, representative directors, and corporate addresses for Netflix global operations.',
-          details: 'Corporate entity registries, compliance declarations, and administrative details for local market regulators. View details for Netflix, Inc. (Delaware, USA), Netflix Services International B.V. (Amsterdam, Netherlands), and regional subsidiaries managing distribution. Contains local VAT registry codes, contact details for corporate officers, registered capital metrics, and business licensing certificates.'
-        };
-      case '/media-centre':
-        return {
-          title: 'Media Centre',
-          icon: <Film size={36} className="text-[#e50914]" />,
-          description: 'Get the latest press releases, media kits, production news, studio contact details, and marketing assets.',
-          details: 'Access official press contacts, image packages, trailer releases, premiere schedules, and interview reels. Journalists and content creators can register to download high-resolution key art, production stills, cast biographies, and executive statements. Browse updates on film festival selections, award nominations, licensing deals, and construction progress at our production hubs.'
-        };
+
       case '/privacy':
         return {
-          title: 'Privacy Statement',
-          icon: <ShieldAlert size={36} className="text-[#e50914]" />,
-          description: 'Learn how we collect, store, share, and protect your personal information, profile history, and payment details.',
-          details: 'Review your rights under GDPR, CCPA, and global data privacy standards, and find out how to request data deletion. We outline exactly what telemetry we collect (such as device types, IP addresses, watching history, and search queries), how long it is stored, who it is shared with for processing, and how you can download or delete your entire history file at any time.'
+          title: 'Privacy Policy',
+          subtitle: 'How WatchCineX handles user data, authentication, and browser storage.',
+          icon: <Shield size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-lg">
+                <h3 className="text-white font-semibold mb-1 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-500" />
+                  Zero Telemetry &amp; Privacy-First Philosophy
+                </h3>
+                <p className="text-neutral-400 text-xs">
+                  We believe in complete privacy. WatchCineX does not track your online activity, monitor the titles you watch, sell your information to advertisers, or inject tracking pixels.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">1. Authentication via Firebase &amp; Google</h2>
+                <p>
+                  When you sign in with Google or create an email account on WatchCineX, authentication is handled securely through Firebase Authentication (Google Identity Platform). We store your account identifier and email address strictly to maintain your active session across devices and to customize your profile avatar.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">2. Local Browser Storage (localStorage)</h2>
+                <p>
+                  To maximize speed and privacy, WatchCineX keeps your personal watchlists, favorites, and profile customization stored directly in your browser&apos;s <code className="text-red-400 bg-neutral-900 px-1 py-0.5 rounded">localStorage</code>:
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-neutral-400">
+                  <li><strong className="text-neutral-200">cinex_auth_user:</strong> Remembers your active login status so you don&apos;t have to log in on every refresh.</li>
+                  <li><strong className="text-neutral-200">cinex_active_profile:</strong> Remembers your chosen avatar and profile name.</li>
+                  <li><strong className="text-neutral-200">netflix_favorites:</strong> Stores your saved movies and TV shows for quick access.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">3. Third-Party Network Requests</h2>
+                <p>
+                  When you browse titles, metadata and cover art are loaded via the public TMDB API. When you stream a title, the video player initiates an HTTP request directly to the chosen streaming provider (e.g. NetMirror or ArtPlayer). Those external services have their own independent privacy practices.
+                </p>
+              </div>
+            </div>
+          )
         };
+
+      case '/help-centre':
+        return {
+          title: 'Streaming FAQ & Help Centre',
+          subtitle: 'Answers to common streaming issues, audio selection, buffering, and server switching.',
+          icon: <HelpCircle size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div className="border border-neutral-800 rounded-lg p-5 bg-neutral-900/40">
+                <h3 className="text-white font-semibold text-base mb-2">Why is a movie or episode showing &quot;Server Busy&quot; or buffering?</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  External streaming clusters experience heavy peak traffic. WatchCineX includes an automatic background failover engine between <strong className="text-white">ArtPlayer</strong> and <strong className="text-white">NetMirror</strong>. If a server is slow, open the player controls and select an alternate server or audio language from the dropdown to instantly re-route the stream.
+                </p>
+              </div>
+
+              <div className="border border-neutral-800 rounded-lg p-5 bg-neutral-900/40">
+                <h3 className="text-white font-semibold text-base mb-2">How do I change audio to Hindi or other dubbed languages?</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  When playing a title via the primary player (ArtPlayer), click the <strong className="text-white">&quot;Audio: Original&quot;</strong> selector in the top-left corner of the video modal. If dubbed releases are available for that title, you can switch between Original, Hindi, English, and other regional tracks with zero reload time.
+                </p>
+              </div>
+
+              <div className="border border-neutral-800 rounded-lg p-5 bg-neutral-900/40">
+                <h3 className="text-white font-semibold text-base mb-2">Do I need an account to watch?</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  No! WatchCineX is completely free and open. You can stream any title immediately without logging in. Creating or signing in with a Google account allows you to sync your favorite watchlists, profile PIN locks, and resume timestamps across sessions.
+                </p>
+              </div>
+
+              <div className="border border-neutral-800 rounded-lg p-5 bg-neutral-900/40">
+                <h3 className="text-white font-semibold text-base mb-2">Are popups and intrusive ads blocked?</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  Yes. WatchCineX includes an integrated <strong className="text-white">AdShield</strong> that intercepts external popups, redirect hijacking, and middle-click dispatches, ensuring a clean and safe viewing experience.
+                </p>
+              </div>
+            </div>
+          )
+        };
+
+      case '/audio-description':
+        return {
+          title: 'Audio & Subtitle Guide',
+          subtitle: 'Learn how to customize audio tracks, switch to dubbed versions, and enable subtitles.',
+          icon: <Volume2 size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">Multi-Audio &amp; Dubbed Variants</h2>
+                <p>
+                  WatchCineX integrates directly with multi-audio streaming clusters. For movies and shows released with multi-language audio (such as Hindi, English, Korean, or Japanese), our player dynamically indexes the available dubbed feeds.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+                  <h3 className="text-white font-bold text-sm mb-1">Switching Audio Tracks</h3>
+                  <p className="text-neutral-400 text-xs">
+                    Look for the Audio Track selector at the top-left of the player modal. Click to choose your preferred language feed (e.g. Hindi Dubbed, Original Audio, English).
+                  </p>
+                </div>
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+                  <h3 className="text-white font-bold text-sm mb-1">Enabling Subtitles (CC)</h3>
+                  <p className="text-neutral-400 text-xs">
+                    Click the &quot;CC&quot; icon in the video player control bar to toggle closed captions and select subtitles in English or other supported languages.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">Audio Desync or Missing Tracks?</h2>
+                <p>
+                  If a particular audio track is out of sync or buffers, switch the provider toggle in the player to reload the stream from the backup cluster server.
+                </p>
+              </div>
+            </div>
+          )
+        };
+
+      case '/cookie-preferences':
+        return {
+          title: 'Cookie & Storage Preferences',
+          subtitle: 'Review and manage how WatchCineX stores preferences in your browser.',
+          icon: <Database size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <p>
+                WatchCineX does not use third-party advertising cookies or cross-site tracking beacons. We rely solely on your browser&apos;s local storage to remember your settings and session.
+              </p>
+
+              <div className="space-y-3">
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-white font-semibold text-sm">Essential Session &amp; Profile Storage</h4>
+                    <p className="text-neutral-400 text-xs">Keeps you signed in and stores your active profile name and avatar.</p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded border border-emerald-800/40">Always Active</span>
+                </div>
+
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-white font-semibold text-sm">Favorites &amp; Watchlist</h4>
+                    <p className="text-neutral-400 text-xs">Stores the movies and TV shows you have added to My List.</p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded border border-emerald-800/40">Always Active</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-neutral-800">
+                <button
+                  onClick={() => {
+                    if (window.confirm('Clear all local WatchCineX preferences and sign out?')) {
+                      localStorage.clear();
+                      window.location.href = '/browse';
+                    }
+                  }}
+                  className="bg-neutral-800 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded transition-colors"
+                >
+                  Clear All Local Storage &amp; Reset Preferences
+                </button>
+              </div>
+            </div>
+          )
+        };
+
       case '/contact-us':
         return {
-          title: 'Contact Us',
-          icon: <PhoneCall size={36} className="text-[#e50914]" />,
-          description: 'Need to get in touch? Find official support numbers, customer service chat links, and business inquiry channels here.',
-          details: 'Our support team is available 24/7. Speak with a live support representative or use the direct chat inside the application. We support inquiries regarding account recoveries, billing disputes, unauthorized profile accesses, technical streaming difficulties, or general partnership requests. Local toll-free numbers are provided for over 60 countries.'
+          title: 'Contact Us & DMCA Notices',
+          subtitle: 'Reach out to the WatchCineX maintainers for inquiries, feedback, or DMCA notifications.',
+          icon: <Mail size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">Get in Touch</h2>
+                <p>
+                  Have feedback, feature suggestions, or need to report a broken stream? As an open source project, our primary collaboration and discussion hub is hosted on GitHub.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a
+                  href="https://github.com/codebrak07/watch-cinex/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-neutral-900 hover:bg-neutral-800 p-5 rounded-lg border border-neutral-800 flex flex-col gap-2 transition-colors group"
+                >
+                  <div className="flex items-center justify-between text-white font-bold text-sm">
+                    <span className="flex items-center gap-2">
+                      <Code size={16} className="text-[#e50914]" />
+                      GitHub Issue Tracker
+                    </span>
+                    <ExternalLink size={14} className="text-neutral-500 group-hover:text-white" />
+                  </div>
+                  <p className="text-neutral-400 text-xs">
+                    Report bugs, streaming issues, or submit pull requests directly to the repository.
+                  </p>
+                </a>
+
+                <div className="bg-neutral-900 p-5 rounded-lg border border-neutral-800 flex flex-col gap-2">
+                  <span className="flex items-center gap-2 text-white font-bold text-sm">
+                    <Mail size={16} className="text-[#e50914]" />
+                    Email Inquiries
+                  </span>
+                  <p className="text-neutral-400 text-xs">
+                    For legal notices and general project queries:
+                  </p>
+                  <span className="text-neutral-200 font-mono text-xs select-all">
+                    aalekhmaheshwari@gmail.com
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-neutral-900/60 border border-neutral-800 p-4 rounded-lg text-xs text-neutral-400">
+                <strong className="text-white block mb-1">DMCA Notice Reminder:</strong>
+                Please remember that WatchCineX does not host, upload, or control any video streams or server files. To permanently take down media, notices must be submitted directly to the third-party file hosts streaming the content.
+              </div>
+            </div>
+          )
         };
+
+      case '/corporate-information':
+        return {
+          title: 'Streaming Architecture & Technology',
+          subtitle: 'Technical specifications, player engines, and infrastructure powering WatchCineX.',
+          icon: <Code size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">Modern Web Stack</h2>
+                <p>
+                  WatchCineX is engineered with a high-performance modern web framework to provide instantaneous page navigation, responsive playback, and robust failovers.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+                  <h4 className="text-white font-bold text-sm mb-1">Frontend Core</h4>
+                  <p className="text-neutral-400 text-xs">React 19, Vite, Tailwind CSS, and Framer Motion for 60fps animations.</p>
+                </div>
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+                  <h4 className="text-white font-bold text-sm mb-1">Playback Engines</h4>
+                  <p className="text-neutral-400 text-xs">ArtPlayer custom integration with HLS / MPD support and NetMirror clusters.</p>
+                </div>
+                <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+                  <h4 className="text-white font-bold text-sm mb-1">Metadata API</h4>
+                  <p className="text-neutral-400 text-xs">The Movie Database (TMDB) for live trending titles, cast lists, and artwork.</p>
+                </div>
+              </div>
+            </div>
+          )
+        };
+
+      case '/media-centre':
+        return {
+          title: 'About WatchCineX',
+          subtitle: 'The open source mission behind creating a fast, ad-free streaming player.',
+          icon: <Info size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">Our Mission</h2>
+                <p>
+                  WatchCineX was created to provide movie and television enthusiasts with an elegant, modern, and accessible interface for streaming publicly available media without intrusive popups, sluggish players, or paywalls.
+                </p>
+                <p className="mt-2">
+                  Built as an open-source alternative, WatchCineX focuses on speed, multi-audio accessibility, and seamless playback across desktop and mobile devices.
+                </p>
+              </div>
+
+              <div className="bg-neutral-900 p-5 rounded-lg border border-neutral-800">
+                <h3 className="text-white font-bold text-sm mb-1">Open Source &amp; Community Driven</h3>
+                <p className="text-neutral-400 text-xs">
+                  The entire project is public and community-driven. Anyone can review the code, suggest improvements, or help maintain server scrapers.
+                </p>
+              </div>
+            </div>
+          )
+        };
+
+      case '/jobs':
+        return {
+          title: 'Contribute & Collaborate',
+          subtitle: 'Ready to collaborate! Join developers and designers to improve WatchCineX.',
+          icon: <Heart size={32} className="text-[#e50914]" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div className="bg-neutral-900 p-5 rounded-lg border border-neutral-800">
+                <h3 className="text-white font-bold text-base mb-2">We Are Ready to Collaborate!</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  Whether you are a React developer, UI designer, or streaming enthusiast, we welcome contributions of all levels. Help us add new streaming scraper mirrors, optimize audio switching, or improve responsive mobile layouts.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-white text-lg font-bold mb-2">How to Contribute</h2>
+                <ol className="list-decimal pl-5 space-y-2 text-xs md:text-sm text-neutral-300">
+                  <li>Visit our GitHub repository at <a href="https://github.com/codebrak07/watch-cinex" target="_blank" rel="noopener noreferrer" className="text-[#e50914] underline">github.com/codebrak07/watch-cinex</a>.</li>
+                  <li>Fork the repository to your own account.</li>
+                  <li>Create a feature branch for your changes (<code className="text-neutral-200 bg-neutral-900 px-1 py-0.5 rounded">git checkout -b feature/awesome-feature</code>).</li>
+                  <li>Commit your code and submit a Pull Request describing your improvements.</li>
+                </ol>
+              </div>
+            </div>
+          )
+        };
+
+      case '/gift-cards':
+      case '/investor-relations':
+        return {
+          title: '100% Free Forever Promise',
+          subtitle: 'WatchCineX has no memberships, investors, or paywalls.',
+          icon: <CheckCircle2 size={32} className="text-emerald-500" />,
+          content: (
+            <div className="space-y-6 text-neutral-300 text-sm leading-relaxed">
+              <div className="bg-neutral-900 p-5 rounded-lg border border-neutral-800">
+                <h3 className="text-white font-bold text-base mb-2">No Fees, No Subscriptions, No Gift Cards</h3>
+                <p className="text-neutral-400 text-xs md:text-sm">
+                  WatchCineX is not a commercial enterprise and has no corporate investors, gift card balances, or paid subscription tiers. Everything is 100% free and open for public use and education.
+                </p>
+              </div>
+            </div>
+          )
+        };
+
       default:
         return {
-          title: 'Page Not Found',
-          icon: <HelpCircle size={36} className="text-[#e50914]" />,
-          description: 'The requested sample page could not be located.',
-          details: 'Please return to the main dashboard.'
+          title: 'Information Centre',
+          subtitle: 'Documentation and information for WatchCineX.',
+          icon: <Info size={32} className="text-[#e50914]" />,
+          content: (
+            <p className="text-neutral-400 text-sm">
+              Please use the navigation links or return to <Link to="/browse" className="text-[#e50914] underline">Browse Catalog</Link>.
+            </p>
+          )
         };
     }
   };
 
-  const details = getPageDetails();
+  const data = getPageData();
 
   return (
-    <div className="min-h-screen bg-white text-neutral-800 flex flex-col font-sans antialiased">
-      {/* Real Netflix Help Center Header */}
-      <header className="bg-black text-white px-6 md:px-16 py-4 flex items-center justify-between z-50">
+    <div className="min-h-screen bg-[#141414] text-neutral-200 flex flex-col font-sans antialiased selection:bg-[#e50914] selection:text-white">
+      {/* CineX Header */}
+      <header className="bg-black/90 backdrop-blur-md border-b border-white/10 px-6 md:px-16 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <img
             src={logoImg}
             alt="CineX Logo"
             onClick={() => navigate('/browse')}
-            className="h-10 md:h-14 w-auto cursor-pointer select-none object-contain"
+            className="h-8 md:h-10 w-auto cursor-pointer select-none object-contain"
           />
           <div className="h-4 w-[1px] bg-neutral-700" />
-          <span className="text-sm font-light text-neutral-300">Help Center</span>
+          <span className="text-xs md:text-sm font-medium text-neutral-400">Documentation &amp; Legal</span>
         </div>
 
-        <div className="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-neutral-300 hover:text-white transition-colors">
-          <span>English</span>
-          <span className="text-[#e50914] text-[10px]">▼</span>
-        </div>
+        <button
+          onClick={() => navigate('/browse')}
+          className="flex items-center gap-2 text-xs font-semibold text-neutral-300 hover:text-white transition-colors bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700 px-3.5 py-1.5 rounded-md cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Browse</span>
+        </button>
       </header>
 
-      {/* Warning/Alert Banner */}
-      <div className="bg-[#e8e8e8] border-b border-neutral-300 px-6 md:px-16 py-3 flex items-start gap-3">
-        <span className="text-neutral-700 text-lg mt-0.5">🔔</span>
-        <div className="flex flex-col">
-          <span className="font-bold text-xs md:text-sm text-neutral-900 leading-tight">Wait time for live help is longer than usual</span>
-          <span className="text-neutral-600 text-[11px] md:text-xs leading-normal">Check back later, or search our Help Center for answers.</span>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <main className="flex-1 max-w-none w-full px-6 md:px-24 py-10 flex flex-col gap-6">
-        {/* Navigation / Actions row */}
-        <div className="flex items-center justify-between text-neutral-600 border-b border-neutral-200 pb-4">
-          <button
-            onClick={() => navigate('/browse')}
-            className="flex items-center gap-1.5 text-xs font-semibold hover:text-black transition-colors bg-transparent border-0 cursor-pointer"
-          >
-            ← Back to Help Home
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 bg-[#e8e8e8] hover:bg-neutral-300 text-neutral-800 text-xs font-bold px-4 py-2 rounded-md shadow-sm border border-neutral-300 transition-colors cursor-pointer"
-          >
-            🖨️ Print
-          </button>
-        </div>
-
-        {/* Real Document Title */}
-        <h1 className="text-3xl md:text-4xl font-extrabold text-neutral-900 leading-tight tracking-tight mt-2 font-sans">
-          {path === '/terms-of-use' ? 'Netflix Terms of Use' : `Netflix ${details.title}`}
-        </h1>
-
-        {path === '/terms-of-use' ? (
-          <div className="text-neutral-700 text-sm md:text-base leading-relaxed flex flex-col gap-6 text-justify">
-            <p>
-              Welcome to Netflix! Netflix provides a service that allows users to access entertainment content (“Netflix content”) over the Internet on certain Internet-connected TVs, computers and other devices ("Netflix supported devices").
-            </p>
-            <p>
-              Your contractual partner and consumer point of contact under these Terms of Use is Netflix Entertainment Services India LLP. These Terms of Use govern your use of the Netflix service. As used in these Terms of Use, "Netflix service" or "the service" means the service provided by Netflix for discovering and accessing Netflix content. This includes all personalization, features and functionalities, recommendations and reviews, related websites, applications and user interfaces, as well as all content and software associated with the service.
-            </p>
-
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-2">1. The Netflix Service</h2>
-              <div className="space-y-4">
-                <p>
-                  <strong>1.1. Access to the Netflix Service.</strong> To use the Netflix service you must have Internet access and a Netflix supported device. Some features, content, or offerings may be available at no cost and may be accessed without creating an account or providing a Payment Method, while other options require you to create a Netflix account or purchase a subscription, subject to the subscription terms outlined below. You may also be able to use the Netflix service as a profile user under an Account Owner’s subscription, provided you are part of the same household, or, where this feature is available, as an Extra Member if you do not live in the same household as the Account Owner. As used in these Terms, “Account Owner” means the user who created the Netflix account and whose Payment Method is charged for the subscription.
-                </p>
-                <p>
-                  <strong>1.2. Age Limitation.</strong> You must be at least 18 years of age to create a Netflix account or, where available, to become an Extra Member. Minors may only use the service under the supervision of an adult.
-                </p>
-                <p>
-                  <strong>1.3. Offers.</strong> We may from time to time provide special promotional offers (such as sweepstakes, discounts and other incentives), plans or subscriptions (“Offers”). Offer eligibility is determined by Netflix at its sole discretion and we reserve the right to revoke an Offer and put your account on hold in the event that we determine you are not eligible. Members of households with an existing or recent Netflix account may not be eligible for certain introductory Offers. We may use information such as device ID, method of payment or your contact information to determine Offer eligibility. The eligibility requirements and other limitations and conditions will be disclosed when you sign-up for the Offer or in other communications made available to you.
-                </p>
-                <p>
-                  <strong>1.4. Account Sharing.</strong> The CineX service and any content accessed through it are for your personal, non-commercial use only and may not be shared with anyone outside of your household.
-                </p>
-                <p>
-                  <strong>1.5. Access Limitations.</strong> You may access the Netflix content primarily within the country in which you have established your account and only in geographic locations where we offer our service and have licensed such content. For the purpose of determining the taxes that will be charged over your subscription fee, we will use the IP address that is used when you sign up to the Netflix service. The content that may be available will vary by geographic location, may be limited by law or by the rights granted by third-party content providers, and will change from time to time. The number of devices on which you may simultaneously watch depends on your chosen subscription plan and is specified on the "Account" page.
-                </p>
-                <p>
-                  <strong>1.6. Availability and Testing.</strong> The Netflix service, including the Netflix content, is regularly updated. As a result, we do not guarantee that particular content will be available on the Netflix service at any given time. While we strive to provide a consistent and high-quality experience, some content or features may be temporarily unavailable due to demand, technical constraints, or system maintenance. In addition, various aspects of the service are continually tested, including the websites, user interfaces and promotional features. You can turn off test participation at any time by visiting the "Account" page and changing the "Test participation" settings.
-                </p>
-                <p>
-                  <strong>1.7. Downloading Content.</strong> Depending on the subscription plan, some Netflix content may be available for temporary download and offline viewing on certain supported devices (“Offline Titles”). Limitations apply, including restrictions on the number of Offline Titles per account, the maximum number of devices that can contain Offline Titles, the time period within which you will need to begin viewing Offline Titles and how long the Offline Titles will remain accessible. Some Offline Titles may not be playable in certain countries and if you go online in a country where you would not be able to stream that Offline Title, the Offline Title will not be playable while you are in that country.
-                </p>
-                <p>
-                  <strong>1.8. Usage Rights and Restrictions.</strong> Subject to these Terms and only to the extent you are expressly authorised, we grant you a limited, non-exclusive, non-transferable right to access the Netflix service. Except for the foregoing, no right, title or interest shall be transferred to you. You agree to use the Netflix service, including all features and functionalities associated therewith, in accordance with all applicable laws, rules and regulations, or other restrictions on use of the service or content therein. Unless otherwise explicitly authorized, you agree not to:
-                </p>
-                <ul className="list-[lower-roman] pl-8 space-y-2.5">
-                  <li>use the service for commercial purposes or public performances;</li>
-                  <li>archive, reproduce, distribute, modify, display, perform, publish, license, create derivative works from, offer for sale, or use content and information contained on or obtained from or through the Netflix service;</li>
-                  <li>circumvent, remove, alter, deactivate, degrade, block, obscure or thwart any of the content protections or other elements of the Netflix service, including the graphical user interface, any advertising or advertising features, copyright notices, and trademarks;</li>
-                  <li>use any robot, spider, scraper or other automated means to access the Netflix service;</li>
-                  <li>decompile, reverse engineer or disassemble any software or other products or processes accessible through the Netflix service;</li>
-                  <li>insert any code or product or manipulate the content of the Netflix service in any way;</li>
-                  <li>use any data mining, data gathering or extraction method;</li>
-                  <li>upload, post, e-mail or otherwise send or transmit any material designed to interrupt, destroy or limit the functionality of any computer software or hardware or telecommunications equipment associated with the Netflix service, including any software viruses or any other computer code, files or programs; or</li>
-                  <li>engage in any of the foregoing in connection with the use, creation, development, modification, prompting, fine-tuning, training, testing, benchmarking or validation of any machine learning tool, model, system, algorithm, product or other technology.</li>
-                </ul>
-                <p>
-                  We may terminate or restrict your use of the service if you violate these Terms of Use or are engaged in illegal or fraudulent use of the service.
-                </p>
-                <p>
-                  <strong>1.9. Viewing Experience and Technical Requirements.</strong> The quality of the display of the Netflix content may vary from device to device, and may be affected by a variety of factors, such as your location, the bandwidth available through and/or speed of your Internet connection. HD, Ultra HD and HDR availability is subject to your Internet service and device capabilities. Spatial audio quality is subject to your device capabilities. Not all content is available in spatial audio or in all formats, such as HD, Ultra HD or HDR and not all subscription plans allow you to receive content in all formats. The minimum connection speed for HD video quality (defined as a resolution of 720p or higher) is 3.0 Mbps per stream; however, we recommend a faster connection for improved video quality. A connection speed of at least 5.0 Mbps per stream is recommended to receive Full HD video quality (defined as a resolution of 1080p or higher). A connection speed of at least 15.0 Mbps per stream is recommended to receive Ultra HD video quality (defined as a resolution of 4K or higher). You are responsible for all Internet access charges. Please check with your Internet provider for information on possible Internet data usage charges. The time it takes to begin watching Netflix content will vary based on a number of factors, including your location, available bandwidth at the time, the content you have selected and the configuration of your Netflix supported device.
-                </p>
-                <p>
-                  <strong>1.10. Netflix Software and Updates.</strong> The Netflix software is developed by, or for, Netflix and may solely be used for authorized access to Netflix content through Netflix supported devices. This software may vary by device and medium, and functionalities and features may also differ between devices. You acknowledge that the use of the service may require third party software that is subject to third party licenses. You agree that you may automatically receive updated versions of the Netflix software and related third-party software.
-                </p>
-                <p>
-                  <strong>1.11. Interactive Features.</strong> We may offer certain Interactive Features as part of the service. “Interactive Features” means any real-time or near-real-time functionality that enables users to participate in or interact with programming or other users, for example live chat, polls, voting, multiplayer gaming, game shows, and live voting. Use of Interactive Features is subject to these Terms of Use, our Community Guidelines and, where posted, the official rules for the specific event. We may take interim measures (for example, suspend voting, disqualify entries or void results) to protect voting integrity, safety or legal compliance. We may suspend or terminate access to any Interactive Feature immediately if you breach these Terms of Use, our policies, or if your use poses an immediate safety or legal risk.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-2">2. Subscription Terms</h2>
-              <div className="space-y-4">
-                <p>
-                  <strong>2.1. Billing Cycle and Payment Terms.</strong> Your Netflix subscription will continue until terminated. To purchase a Netflix subscription, you will need to add one or more Payment Methods to your account. “Payment Method” means a current, valid, accepted method of payment, as may be updated from time to time, and which may include payment through your account with a third party. Unless you cancel your subscription before your billing date, you authorize us to charge the subscription fee for the next billing cycle to your Payment Method (see "Cancellation" below). The subscription fee and any other charges you may incur in connection with your use of the service, such as taxes and possible transaction fees, will be charged to your Payment Method on the specific payment date indicated on the "Account" page. The length of your billing cycle will depend on the type of subscription plan that you choose when you signed up for the service. In some cases your payment date may change, for example if your Payment Method has not successfully settled, when you change your subscription plan or if your paid subscription began on a day not contained in a given month. You can see your next payment date on the "Account" page. We may authorize your Payment Method to verify it and to cover upcoming charges through various methods, including a pre-authorization of up to one month of service as soon as you register for a subscription. If you signed up for Netflix using your account with a third party as a Payment Method, you can find the billing information about your Netflix subscription by visiting your account with the applicable third party.
-                </p>
-                <p>
-                  <strong>2.2. Payment Methods.</strong> You authorize us to charge any Payment Method associated with your account in case your primary Payment Method is declined or no longer available to us for payment of your subscription fee. You remain responsible for any uncollected amounts. If a payment is not successfully settled, due to expiration, insufficient funds, or otherwise, and you do not cancel your subscription, we may suspend your access to the service until we have successfully charged a valid Payment Method. For some Payment Methods, the issuer may charge you certain fees, such as foreign transaction fees or other fees relating to the processing of your Payment Method. Local tax charges may vary depending on the Payment Method used. Check with your Payment Method service provider for details.
-                </p>
-                <p>
-                  <strong>2.3. Updating your Payment Methods.</strong> You can update your Payment Methods through the "Account" page. We may also update your Payment Methods using information provided by the payment service providers. Following any update, you authorize us to continue to charge the applicable Payment Method(s).
-                </p>
-                <p>
-                  <strong>2.4. Advertisements and Commercial Content.</strong> While our subscription plans are designed to provide an experience without commercial interruptions, there may be some occasions when you may see advertisements — for example, during certain live or special events (including replays), as part of linear programming, or where required by streaming rights or other legal or contractual obligations. In addition, the service may contain limited commercial content, such as branded content or sponsorship messaging, promotions for Netflix content, or information about other Netflix products or services. Netflix does not endorse or sponsor any advertised third party products or services and any interactions with advertisers, including through engagement with interactive advertisements, are at your own option and risk.
-                </p>
-                <p>
-                  <strong>2.5. Subscriptions Obtained Through Third Parties.</strong> Some subscriptions are offered by third parties in conjunction with the provision of their own products and services. We are not responsible for the products and services provided by such third parties. In addition, some of these subscription plans may have differing conditions and limitations, which will be disclosed prior to your sign-up or in other communications made available to you.
-                </p>
-                <p>
-                  <strong>2.6. Cancellation.</strong> You can cancel your Netflix subscription at any time. To cancel, go to the "Account" page and follow the instructions for cancellation. The cancellation will take effect at the end of the billing period. To the extent permitted by the applicable law, payments are non-refundable and we do not provide refunds or credits for any partial subscription periods or unused Netflix content. You can see when your subscription will end on the "Account" page. If you signed up for Netflix using your account with a third party as a Payment Method and wish to cancel your Netflix subscription, you may need to do so through such third party, for example by visiting your account with the applicable third party and turning off auto-renew, or unsubscribing from the Netflix service through that third party.
-                </p>
-                <p>
-                  <strong>2.7. Changes to the Price and Subscription Plans.</strong> We may change the subscription plans and the price of the service from time to time. We will notify you at least one month before any price changes or changes to your subscription plan will become effective.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-2">3. Extra Members</h2>
-              <div className="space-y-4">
-                <p>
-                  <strong>3.1. Creation of an Extra Member Account.</strong> Where this feature is available and where permitted by the Account Owner’s subscription plan, the Account Owner may purchase an Extra Member account, authorising a person outside of the Account Owner’s household (the “Extra Member”) to access the Netflix service under the Account Owner’s subscription and subject to these Terms of Use. The subscription fees related to the Extra Member account will be charged to the Account Owner’s Payment Method. Extra Members may activate their Extra Member account only in the country where the Account Owner created their account.
-                </p>
-                <p>
-                  <strong>3.2. Cancellation or Changing Beneficiary of the Extra Member Account.</strong> An Extra Member may cancel their account at any time; cancellation by the Extra Member will result in the Extra Member’s immediate loss of access to the Netflix service. The Account Owner may also, in their sole discretion and at any time, remove the Extra Member feature from their subscription or change its beneficiary. If the Account Owner removes the Extra Member feature from their subscription, the Extra Member will retain access to the Netflix service until the end of the Account Owner’s billing period. If the Account Owner changes the beneficiary of the Extra Member account, the previous beneficiary’s access to the Netflix service will end immediately. An Extra Member who wishes to continue using the service, can upgrade their Extra Member account to a subscription via the “Account” page.
-                </p>
-              </div>
-            </div>
-
-            <p>
-              <strong>4. Account Access.</strong> You are responsible for any activity that occurs through the Netflix account. By allowing others to access the account (which includes access to information on viewing activity for the account), you agree that such individuals are acting on your behalf and that you are bound by any changes that they may make to the account, including changes to subscription plans. To help maintain control over the account and to prevent any unauthorized users from accessing the account, you should maintain control over the devices that are used to access the service and not reveal the login credentials or details of the Payment Method associated with the account to anyone. You agree to provide and maintain accurate information relating to your account, including valid contact information so we can send you account related notices. We can terminate your account or place your account on hold in order to protect you, Netflix or our partners from identity theft or other fraudulent activity.
-            </p>
-
-            <p>
-              <strong>5. Warranties and Limitations on Liability.</strong> The Netflix service is provided "as is" and without warranty or condition. In particular, the service may not be uninterrupted or error-free. You waive all special, indirect and consequential damages against us. These terms will not limit any non-waivable warranties or mandatory consumer protection rights that apply to you.
-            </p>
-
-            <p>
-              <strong>6. Class Action Waiver.</strong> WHERE PERMITTED UNDER THE APPLICABLE LAW, YOU AND NETFLIX AGREE THAT EACH MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY, AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS OR REPRESENTATIVE PROCEEDING. Further, where permitted under the applicable law, unless both you and Netflix agree otherwise, the court may not consolidate more than one person's claims with your claims, and may not otherwise preside over any form of a representative or class proceeding.
-            </p>
-
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-2">7. Miscellaneous</h2>
-              <div className="space-y-4">
-                <p>
-                  <strong>7.1. Governing Law.</strong> These Terms of Use shall be governed by and construed in accordance with the laws of India.
-                </p>
-                <p>
-                  <strong>7.2. Unsolicited Materials.</strong> Netflix does not accept unsolicited materials or ideas for Netflix content and is not responsible for the similarity of any of its content or programming in any media to materials or ideas transmitted to Netflix.
-                </p>
-                <p>
-                  <strong>7.3. Feedback.</strong> Netflix is free to use any comments, information, ideas, concepts, reviews, or techniques or any other material contained in any communication you may send to us ("Feedback"), including responses to questionnaires or through postings to the Netflix service, including related websites and user interfaces, worldwide and in perpetuity without further compensation, acknowledgement or payment to you for any purpose whatsoever including developing, manufacturing and marketing products and creating, modifying or improving the Netflix service. In addition, you agree not to enforce any "moral rights" in and to the Feedback, to the extent permitted by applicable law.
-                </p>
-                <p>
-                  <strong>7.4. Customer Support.</strong> To find more information about the service and its features or if you need assistance with your account, please visit the Netflix Help Center, which is accessible through tnetflix.com. In certain instances, Customer Service may best be able to assist you by using a remote access support tool through which we have full access to your computer. If you do not want us to have this access, you should not consent to support through the remote access tool, and we will assist you through other means. In the event of any conflict between these Terms of Use and information provided by Customer Support or other portions of the website, these Terms of Use will control.
-                </p>
-                <p>
-                  <strong>7.5. Survival.</strong> If any provision or provisions of these Terms of Use shall be held to be invalid, illegal, or unenforceable, the validity, legality and enforceability of the remaining provisions shall remain in full force and effect.
-                </p>
-                <p>
-                  <strong>7.6. Changes to these Terms and Assignment.</strong> We may, from time to time, change these Terms of Use. In case of material changes we will notify you at least one month before such changes apply to you. We may assign or transfer our agreement with you including our associated rights and obligations at any time and you agree to cooperate with us in connection with such an assignment or transfer.
-                </p>
-                <p>
-                  <strong>7.7. Events Beyond our Reasonable Control.</strong> The Netflix service and/or some of the Netflix content may not be available at any time as a result of events beyond our reasonable control, including: (i) power or server outages; (ii) acts or failures of any kind by third parties such as network providers (iii) war, riots, strikes, or social unrest; and/or (iv) any other events or factors beyond our reasonable control. While we will make reasonable efforts to notify you in advance, to the extent permitted by applicable law, we will not be held liable should such events occur.
-                </p>
-                <p>
-                  <strong>7.8. Electronic Communications.</strong> We will send you information relating to your account (e.g. payment authorizations, invoices, changes in contact details or Payment Method, confirmation messages, notices) in electronic form only.
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-neutral-500 font-mono mt-4">
-              Last Updated: 2026
+      {/* Main Container */}
+      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 flex flex-col gap-8">
+        {/* Header Title Block */}
+        <div className="flex items-start gap-4 pb-6 border-b border-neutral-800">
+          <div className="p-3 bg-neutral-900 rounded-xl border border-neutral-800 shrink-0">
+            {data.icon}
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+              {data.title}
+            </h1>
+            <p className="text-xs md:text-sm text-neutral-400 mt-1">
+              {data.subtitle}
             </p>
           </div>
-        ) : (
-          <div className="text-neutral-700 text-sm md:text-base leading-relaxed flex flex-col gap-6 text-justify">
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-3 flex items-center gap-2">
-                1. Overview & Service Details
-              </h2>
-              <p className="text-neutral-700 text-sm md:text-base leading-relaxed pl-4 border-l-2 border-neutral-200">
-                {details.details}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-neutral-950 mb-3">
-                2. Additional Terms & Conditions
-              </h2>
-              <ul className="list-disc pl-6 space-y-2.5 text-neutral-700 text-sm md:text-base">
-                <li>Access to services is permitted solely for personal, non-commercial purposes within household networks.</li>
-                <li>Network streaming performance and video rendering profiles may depend heavily on localized internet speeds and subscription plan selections.</li>
-                <li>Users must configure profiles to restrict viewing selections depending on age-appropriate ratings.</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Real Bottom Footer Link Lists */}
-        <div className="border-t border-neutral-200 mt-12 pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-neutral-500 font-sans">
-          <Link to="/terms-of-use" className="hover:underline text-[#e50914]">Terms of Use</Link>
-          <Link to="/privacy" className="hover:underline">Privacy</Link>
-          <Link to="/cookie-preferences" className="hover:underline">Cookie Preferences</Link>
-          <Link to="/corporate-information" className="hover:underline">Corporate Information</Link>
         </div>
 
-        {/* Official Website Redirection Button */}
-        <div className="mt-6 pt-4 border-t border-neutral-200 flex items-center justify-center">
-          <a
-            href={`https://help.netflix.com${path === '/help-centre' ? '' : path}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-[#e50914] hover:bg-[#b20710] text-white font-extrabold text-xs tracking-wider px-10 py-3.5 rounded shadow-lg transition-colors cursor-pointer uppercase"
-          >
-            Official Website
-          </a>
+        {/* Dynamic Page Content */}
+        <div className="pb-10">
+          {data.content}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-6 text-center text-[10px] text-neutral-500 border-t border-neutral-200 bg-neutral-50 font-mono mt-12">
-        © CineX
-      </footer>
+      {/* Global Unified Footer */}
+      <Footer />
     </div>
   );
 }
