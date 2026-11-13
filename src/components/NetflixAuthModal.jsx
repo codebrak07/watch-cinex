@@ -125,7 +125,7 @@ export default function NetflixAuthModal({ isOpen, onClose, initialMode = 'signi
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%), url('https://assets.nflxext.com/ffe/siteui/vlv3/ab17e75f-3d60-466a-b286-9a5d3f23b7e7/e428df13-ef90-449e-b9e7-03bbfaea2efd/IN-en-20240902-TRIFECTA-perspective_WEB_abf1dd53-b0f3-42bf-907d-e6b728515e06_large.jpg')`
+          backgroundImage: `radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%), url('https://assets.nflxext.com/ffe/siteui/vlv3/d8225575-de28-4228-b02f-b4458f26019a/e946a48d-6e8a-4467-8977-bc6d3ad9c071/US-en-20240909-TRIFECTA-perspective_WEB_a683ec1d-4eb4-4e4b-9759-54378772a818_large.jpg')`
         }}
       />
 
