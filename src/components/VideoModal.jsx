@@ -89,11 +89,16 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
 
     const fetchTvShow = async () => {
       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-      let targetId = mediaId;
+      const cleanTitle = (media.title || media.name || '')
+        .replace(/\[.*?\]|\(.*?\)/g, '')
+        .replace(/\bS\d+(-S\d+)?\b/gi, '')
+        .trim();
+      let rawId = String(mediaId || '');
+      let targetId = rawId.replace(/^dub_/, '');
 
       try {
-        if (!targetId || targetId === '99999' || isNaN(Number(targetId))) {
-          const searchRes = await fetch(`/api/tmdb/search/tv?api_key=${apiKey}&query=${encodeURIComponent(media.title || '')}&language=en-US`);
+        if (!targetId || targetId === '99999' || isNaN(Number(targetId)) || rawId.startsWith('dub_')) {
+          const searchRes = await fetch(`/api/tmdb/search/tv?api_key=${apiKey}&query=${encodeURIComponent(cleanTitle)}&language=en-US`);
           if (searchRes.ok) {
             const searchData = await searchRes.json();
             if (searchData.results && searchData.results.length > 0) {
@@ -103,7 +108,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
           }
         }
 
-        if (targetId && targetId !== '99999') {
+        if (targetId && targetId !== '99999' && !isNaN(Number(targetId))) {
           const res = await fetch(`/api/tmdb/tv/${targetId}?api_key=${apiKey}&language=en-US`);
           if (res.ok) {
             const data = await res.json();
@@ -131,8 +136,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
     let isCancelled = false;
 
     const fetchEpisodes = async () => {
-      const targetId = resolvedTmdbId || mediaId;
-      if (!targetId || targetId === '99999') return;
+      const rawTarget = resolvedTmdbId || mediaId;
+      const targetId = String(rawTarget || '').replace(/^dub_/, '');
+      if (!targetId || targetId === '99999' || isNaN(Number(targetId))) return;
       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
       try {
@@ -399,8 +405,8 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
               }}
               className="bg-[#e50914] hover:bg-[#b20710] border border-white/20 text-white rounded px-3 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors font-bold"
             >
-              <option value="artplayer">ArtPlayer (artplayer.org / High Speed)</option>
-              <option value="netmirror">NetMirror (Cluster Mirror)</option>
+              <option value="artplayer">ArtPlayer (Server 1 / Fast)</option>
+              <option value="netmirror">ArtPlayer (Server 2 / Backup)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -535,7 +541,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-6">
               {availableLanguages.map((variant) => {
                 const isSelected = selectedLanguage === variant.lang;
-                const dubUrl = `https://netmirror.plus/${variant.mediaType || (isTvSeries ? 'tv' : 'movie')}/${variant.netmirrorId}/?se=${currentSeason}&ep=${currentEpisode}`;
                 return (
                   <div
                     key={variant.netmirrorId}
@@ -675,12 +680,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const mediaTitleParam = encodeURIComponent(media.title || media.name || '');
                   const currentLangParam = encodeURIComponent(selectedLanguage || 'default');
 
-                  if (provider === 'netmirror') {
-                    return `https://netmirror.plus/${mType}/${netId || id}/?se=${currentSeason}&ep=${currentEpisode}`;
-                  }
-
-                  // Default: ArtPlayer streaming engine powered by /api/dubbed-player (artplayer.org HTML5 video engine)
-                  return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&server=1&title=${mediaTitleParam}&lang=${currentLangParam}`;
+                  const serverNum = provider === 'netmirror' ? '2' : '1';
+                  // ArtPlayer streaming engine powered by /api/dubbed-player (artplayer.org HTML5 video engine)
+                  return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&server=${serverNum}&title=${mediaTitleParam}&lang=${currentLangParam}`;
                 })()}
                 onError={() => {
                   // Automatic background fallback switch

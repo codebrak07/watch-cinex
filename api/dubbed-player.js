@@ -137,19 +137,50 @@ export default async function handler(req, res) {
       }
     }
 
-    const directNetmirrorUrl = `https://netmirror.plus/${type}/${netIdToUse || item?.id || effectiveTmdbId}/?se=${se}&ep=${ep}`;
+    const nextServer = serverPref === '1' ? '2' : '1';
+    const fallbackPlayerUrl = `/api/dubbed-player?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${type}&server=${nextServer}&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}`;
 
     if (!isValidPage(targetPage)) {
-      res.writeHead(302, { 'Location': directNetmirrorUrl });
-      return res.end();
+      if (serverPref === '1') {
+        res.writeHead(302, { 'Location': fallbackPlayerUrl });
+        return res.end();
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+            .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 32px; border-radius: 16px; max-width: 400px; }
+            h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+            p { color: #a3a3a3; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+            .btn { background: #e50914; color: #fff; padding: 10px 24px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; text-decoration: none; font-size: 0.85rem; display: inline-block; transition: background 0.2s; }
+            .btn:hover { background: #b80710; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>Connecting Stream Cluster</h2>
+            <p>The stream server is initializing playback. Click below to reconnect.</p>
+            <a class="btn" href="?id=${netIdToUse || ''}&tmdb_id=${effectiveTmdbId}&se=${se}&ep=${ep}&type=${type}&server=1&title=${encodeURIComponent(titleParam)}&lang=${encodeURIComponent(langParam)}">
+              Reconnect Stream
+            </a>
+          </div>
+        </body>
+        </html>
+      `);
     }
 
     let cleanHtml = targetPage.body;
 
     // Check if NetMirror has no streams for this title (e.g. qualities empty or not found)
     if (cleanHtml.includes('const qualities = [];') || cleanHtml.includes('Not Found. or Come from listed Website.') || cleanHtml.includes('Server Busy')) {
-      res.writeHead(302, { 'Location': directNetmirrorUrl });
-      return res.end();
+      if (serverPref === '1') {
+        res.writeHead(302, { 'Location': fallbackPlayerUrl });
+        return res.end();
+      }
     }
 
     // Bypass NetMirror forced browser extension check:
@@ -186,8 +217,13 @@ export default async function handler(req, res) {
     // If external.php timer triggers (NetMirror Server 1 unavailable), seamlessly jump to fast fallback
     cleanHtml = cleanHtml.replace(
       'showLoading("Not Found", "Stream is not available.");',
-      `window.location.replace("${directNetmirrorUrl}");`
+      `window.location.replace("${fallbackPlayerUrl}");`
     );
+
+    // Prevent iframe from ever redirecting out to netmirror.plus (avoids X-Frame-Options sameorigin block)
+    cleanHtml = cleanHtml.replace(/https?:\/\/netmirror\.(?:plus|com|app|org|shop)[^\s'"]*/gi, fallbackPlayerUrl);
+    cleanHtml = cleanHtml.replace(/top\.location\s*=\s*[^;]+;?/gi, '');
+    cleanHtml = cleanHtml.replace(/window\.top\.location\s*=\s*[^;]+;?/gi, '');
 
     // Inject base href so all relative media/icons resolve properly to the origin server
     if (cleanHtml.includes('<head>')) {
