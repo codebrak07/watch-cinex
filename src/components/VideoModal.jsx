@@ -717,6 +717,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 }}
                 className="w-full h-full border-0 bg-black cursor-default"
                 referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-downloads"
                 allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *"
                 allowFullScreen
               />
