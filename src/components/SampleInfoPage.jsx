@@ -546,40 +546,173 @@ export default function SampleInfoPage() {
       case '/media-centre':
         return {
           title: 'About WatchCineX',
-          subtitle: 'The open-source story, core philosophy, and mission of the WatchCineX project.',
+          subtitle: 'The open-source story, core philosophy, and technical architecture of WatchCineX.',
           icon: <Info size={32} className="text-[#e50914]" />,
           content: (
-            <div className="space-y-8 text-neutral-300 text-sm leading-relaxed">
-              <div className="space-y-3">
-                <h2 className="text-white text-lg font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#e50914]" />
-                  Why WatchCineX Was Created
+            <div className="space-y-10 text-neutral-300 text-sm leading-relaxed">
+              {/* Introduction & Origin */}
+              <div className="space-y-4">
+                <h2 className="text-white text-xl font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#e50914]" />
+                  The Origin &amp; Vision
                 </h2>
                 <p>
-                  Modern commercial streaming has become fragmented across dozens of separate paywalls, while existing free streaming websites are plagued by invasive popups, redirect traps, deceptive ads, and bloated interfaces.
+                  Modern digital streaming has become increasingly divided across fragmented subscription models, regional library locks, and mounting monthly fees. At the same time, traditional free streaming platforms have historically compromised the viewing experience with malicious redirect chains, unsolicited popups, intrusive trackers, and cluttered, unmaintained interfaces.
                 </p>
                 <p>
-                  <strong className="text-white">WatchCineX</strong> was born out of a desire to create something better: a beautiful, Netflix-grade web application that provides movie and television fans with a clean, fast, ad-shielded streaming experience.
+                  <strong className="text-white font-semibold">WatchCineX</strong> was established to change this paradigm. Our vision is to deliver a refined, Netflix-grade streaming client that is completely open source, privacy-focused, and accessible to everyone without paywalls or subscriptions. By uniting a modern React single-page architecture with decentralized streaming cluster integration and client-side popup protection, WatchCineX brings a seamless cinema experience directly to your browser.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 space-y-2">
-                  <h3 className="text-white font-bold text-sm">Key Principles</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-xs text-neutral-400">
-                    <li><strong className="text-neutral-200">100% Free:</strong> No paywalls, subscriptions, or monetization.</li>
-                    <li><strong className="text-neutral-200">Ad-Shielded:</strong> Zero intrusive ads or hijacked popups.</li>
-                    <li><strong className="text-neutral-200">Multi-Audio:</strong> Instant access to dubbed audio tracks.</li>
-                    <li><strong className="text-neutral-200">Open Source:</strong> Transparent, inspectable, and community-driven.</li>
-                  </ul>
-                </div>
+              {/* Core Pillars */}
+              <div className="space-y-4">
+                <h2 className="text-white text-xl font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#e50914]" />
+                  Core Engineering Pillars
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Sparkles size={16} className="text-[#e50914]" />
+                      <span>100% Free Forever</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      No subscription fees, account paywalls, VIP memberships, or monetization tiers. WatchCineX is and will always remain free for global movie and series enthusiasts.
+                    </p>
+                  </div>
 
-                <div className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 space-y-2">
-                  <h3 className="text-white font-bold text-sm">Community-Powered</h3>
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Shield size={16} className="text-[#e50914]" />
+                      <span>Built-In AdShield Engine</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      An integrated client-side protection system intercepts middle-click hijacks, uninvited new-tab redirects, and click-jacking triggers before they can disrupt your playback.
+                    </p>
+                  </div>
+
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Cpu size={16} className="text-[#e50914]" />
+                      <span>Dual-Cluster Failover</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Our streaming pipeline connects to multiple high-speed server clusters (Primary and Backup). If a source cluster experiences temporary latency, the player automatically reroutes with minimal interruption.
+                    </p>
+                  </div>
+
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Volume2 size={16} className="text-[#e50914]" />
+                      <span>Multi-Language Audio Feeds</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Enjoy international films and popular series in your preferred language. Toggle dynamically between original audio, Hindi dubs, English feeds, and regional tracks with one click.
+                    </p>
+                  </div>
+
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Database size={16} className="text-[#e50914]" />
+                      <span>Strict Client-Side Privacy</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Your viewing history, custom watchlists, and profile preferences remain in your browser local storage. We collect zero analytics trackers, telemetry scripts, or behavior fingerprints.
+                    </p>
+                  </div>
+
+                  <div className="bg-neutral-900/90 p-5 rounded-xl border border-neutral-800 space-y-2 hover:border-neutral-700 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-bold text-sm">
+                      <Code size={16} className="text-[#e50914]" />
+                      <span>Community-Driven &amp; Open</span>
+                    </div>
+                    <p className="text-neutral-400 text-xs">
+                      Built with modern web standards (React 19, Vite, Tailwind CSS). We welcome developers, designers, and curators worldwide to collaborate and enhance the platform.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Architecture */}
+              <div className="space-y-4">
+                <h2 className="text-white text-xl font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#e50914]" />
+                  Technical Architecture
+                </h2>
+                <div className="bg-neutral-900 p-6 rounded-xl border border-neutral-800 space-y-4">
+                  <p className="text-xs md:text-sm text-neutral-300">
+                    WatchCineX operates as a distributed client-serverless hybrid that prioritizes speed, resilience, and user safety:
+                  </p>
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-neutral-800 text-[#e50914] font-bold flex items-center justify-center shrink-0 border border-neutral-700 text-xs">1</span>
+                      <div>
+                        <strong className="text-white block text-sm">Catalog Aggregation Layer</strong>
+                        <span className="text-neutral-400">Media metadata, posters, backdrops, cast listings, and trending charts are queried via The Movie Database (TMDB) through edge serverless API proxies to protect API keys and ensure fast cached delivery.</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-neutral-800 text-[#e50914] font-bold flex items-center justify-center shrink-0 border border-neutral-700 text-xs">2</span>
+                      <div>
+                        <strong className="text-white block text-sm">Decentralized Stream Resolution</strong>
+                        <span className="text-neutral-400">When you select a title, WatchCineX queries public streaming clusters to resolve active video streams and dubbed audio variants without storing media files on our infrastructure.</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-neutral-800 text-[#e50914] font-bold flex items-center justify-center shrink-0 border border-neutral-700 text-xs">3</span>
+                      <div>
+                        <strong className="text-white block text-sm">Isolated Player Sandboxing</strong>
+                        <span className="text-neutral-400">The video playback engine is isolated within a secured player framework, utilizing strict sandboxing to neutralize frame-busting scripts, malicious redirects, and unsolicited third-party popups.</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-neutral-800 text-[#e50914] font-bold flex items-center justify-center shrink-0 border border-neutral-700 text-xs">4</span>
+                      <div>
+                        <strong className="text-white block text-sm">Instant State Recovery</strong>
+                        <span className="text-neutral-400">Player position, chosen audio language, volume levels, and continue watching timestamps are persisted locally so you can resume precisely where you left off.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Roadmap & Open Collaboration */}
+              <div className="space-y-4">
+                <h2 className="text-white text-xl font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#e50914]" />
+                  Roadmap &amp; Future Development
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-1.5">
+                    <strong className="text-white block text-sm">Advanced Subtitles</strong>
+                    <p className="text-neutral-400">Custom subtitle styling, font resizing, and multi-language external SRT/VTT caption synchronization.</p>
+                  </div>
+                  <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-1.5">
+                    <strong className="text-white block text-sm">PWA Offline Shell</strong>
+                    <p className="text-neutral-400">Progressive Web App installation for desktop and mobile home screens with instant cached launch speeds.</p>
+                  </div>
+                  <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-1.5">
+                    <strong className="text-white block text-sm">Smart Watch Parties</strong>
+                    <p className="text-neutral-400">Synchronized playback rooms allowing remote groups of friends to watch shows and movies together in real-time.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Get in Touch Callout */}
+              <div className="bg-gradient-to-r from-neutral-900 to-neutral-950 p-6 rounded-xl border border-neutral-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-white font-bold text-base">Ready to Collaborate?</h3>
                   <p className="text-neutral-400 text-xs">
-                    WatchCineX thrives because developers, designers, and media enthusiasts collaborate to maintain scrapers, improve player responsiveness, and enhance UI accessibility.
+                    Have feedback, feature ideas, or want to contribute to the code? Get in touch with the team at <a href="mailto:workforchronoae@gmail.com" className="text-neutral-200 hover:text-white underline font-mono">workforchronoae@gmail.com</a>.
                   </p>
                 </div>
+                <a
+                  href="mailto:workforchronoae@gmail.com"
+                  className="bg-[#e50914] hover:bg-[#b20710] text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors shrink-0 inline-flex items-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <Mail size={14} />
+                  <span>Contact Team</span>
+                </a>
               </div>
             </div>
           )
@@ -645,12 +778,38 @@ export default function SampleInfoPage() {
           content: (
             <div className="space-y-8 text-neutral-300 text-sm leading-relaxed">
               <div className="bg-neutral-900 p-6 rounded-xl border border-neutral-800 space-y-3">
-                <h3 className="text-white font-bold text-base">Community-Driven &amp; Non-Commercial</h3>
+                <h3 className="text-white font-bold text-base flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Community-Driven &amp; Non-Commercial
+                </h3>
                 <p className="text-neutral-300 text-xs md:text-sm">
-                  WatchCineX is not a commercial enterprise or corporation. There are no stockholders, private equity investors, or corporate sponsors. We do not issue gift cards, vouchers, or premium subscription tiers.
+                  WatchCineX is not a commercial enterprise or corporation. There are no stockholders, venture capitalists, private equity investors, or corporate sponsors. We do not issue gift cards, vouchers, merchandise, or premium subscription tiers.
                 </p>
                 <p className="text-neutral-400 text-xs">
-                  Everything developed under WatchCineX is free for all users worldwide. Enjoy the platform, share it with friends, and if you have feedback or ideas, feel free to reach out to us at workforchronoae@gmail.com!
+                  Everything developed under WatchCineX is free for all users worldwide. Enjoy the platform, share it with friends, and if you have feedback or ideas, feel free to reach out to us at <a href="mailto:workforchronoae@gmail.com" className="text-neutral-200 hover:text-white underline font-mono">workforchronoae@gmail.com</a>!
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-neutral-900/80 p-5 rounded-xl border border-neutral-800 space-y-2">
+                  <h4 className="text-white font-bold text-sm">Why We Don&apos;t Accept Funding</h4>
+                  <p className="text-neutral-400 text-xs">
+                    Accepting investor capital inevitably forces monetization, tracking ads, subscription paywalls, and user exploitation. By keeping WatchCineX independent and open-source, our only priority is user experience and platform reliability.
+                  </p>
+                </div>
+
+                <div className="bg-neutral-900/80 p-5 rounded-xl border border-neutral-800 space-y-2">
+                  <h4 className="text-white font-bold text-sm">Lightweight Infrastructure</h4>
+                  <p className="text-neutral-400 text-xs">
+                    By relying on decentralized streaming nodes and edge serverless caching, operational overhead is minimal. This allows the service to remain agile, cost-effective, and permanently open without commercial pressures.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-neutral-900/40 border border-neutral-800 p-5 rounded-xl text-xs text-neutral-400 space-y-2">
+                <strong className="text-white block text-sm">Protection Against Scams:</strong>
+                <p>
+                  WatchCineX will never contact you demanding payment, gift cards, credit card numbers, or cryptocurrency donations. Any third-party site selling &quot;WatchCineX Premium Passes&quot; or gift cards is fraudulent.
                 </p>
               </div>
             </div>
