@@ -13,6 +13,7 @@ import MoviesPage from './MoviesPage';
 import BrowseLanguages from './BrowseLanguages';
 import AnimePage from './AnimePage';
 import AnimeWatchModal from './animewatchmodels';
+import LandingProfilePage from './LandingProfilePage';
 
 const SOVEREIGN_EASE = [0.16, 1, 0.3, 1];
 const HOVER_EASE = [0.25, 1, 0.5, 1];
@@ -491,12 +492,23 @@ function MoreInfoPage({ onClose }) {
   );
 }
 
-export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) {
+export default function NetflixHome({ onSwitchProfile: parentOnSwitchProfile, onLogout, onHomeClick }) {
   const location = useLocation();
   const { selectedMedia, setSelectedMedia } = useJam() || {};
   const [activeAnimeMedia, setActiveAnimeMedia] = useState(null);
   const [categories, setCategories] = useState([]);
   const [heroMovie, setHeroMovie] = useState(null);
+
+  // Active Profile & In-App Landing state on /browse
+  const [activeProfile, setActiveProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cinex_active_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [showLanding, setShowLanding] = useState(!activeProfile);
 
   // TMDB search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -909,18 +921,16 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
       setSelectedSearchResult({
         ...item,
         media_type: itemMediaType,
-        isLoadingNigga: false,
         imdb_id: null,
         cast: []
       });
       return;
     }
 
-    // Open modal immediately with base item details and set loading status
+    // Open modal immediately with base item details
     setSelectedSearchResult({
       ...item,
       media_type: itemMediaType,
-      isLoadingNigga: true,
       imdb_id: null,
       cast: []
     });
@@ -928,12 +938,10 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
     try {
       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
-      // Parallel API calls with 2s delay to show the "asking" state
       const [detailRes, externalRes, creditsRes] = await Promise.all([
         fetch(`/api/tmdb/${itemMediaType}/${item.id}?api_key=${apiKey}&language=en-US`),
         fetch(`/api/tmdb/${itemMediaType}/${item.id}/external_ids?api_key=${apiKey}`),
-        fetch(`/api/tmdb/${itemMediaType}/${item.id}/credits?api_key=${apiKey}`),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        fetch(`/api/tmdb/${itemMediaType}/${item.id}/credits?api_key=${apiKey}`)
       ]);
 
       const detailData = detailRes.ok ? await detailRes.json() : {};
@@ -961,9 +969,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         media_type: itemMediaType,
         collection: collectionData,
         imdb_id: externalData.imdb_id || detailData.imdb_id,
-        cast: (creditsData.cast || []).slice(0, 8),
-        isLoadingNigga: false,
-        niggaAnswered: true
+        cast: (creditsData.cast || []).slice(0, 8)
       });
     } catch (err) {
       console.warn("Error fetching details:", err);
@@ -971,22 +977,34 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
         ...item,
         media_type: itemMediaType,
         imdb_id: null,
-        cast: [],
-        isLoadingNigga: false,
-        niggaAnswered: false
+        cast: []
       });
     }
   };
 
   const continueWatchingItems = JSON.parse(localStorage.getItem('netflix_continue_watching') || '[]');
   const displayCategories = continueWatchingItems.length > 0
-    ? [{ title: "Continue Watching for ishanvi", items: continueWatchingItems, isContinueWatching: true }, ...categories]
+    ? [{ title: "Continue Watching", items: continueWatchingItems, isContinueWatching: true }, ...categories]
     : categories;
+
+  if (showLanding) {
+    return (
+      <LandingProfilePage
+        onSelectProfile={(profile) => {
+          setActiveProfile(profile);
+          setShowLanding(false);
+        }}
+      />
+    );
+  }
 
   return (
     <>
       <Navbar
-        onSwitchProfile={onSwitchProfile}
+        onSwitchProfile={() => {
+          setShowLanding(true);
+          if (parentOnSwitchProfile) parentOnSwitchProfile();
+        }}
         onLogout={onLogout}
         onHomeClick={onHomeClick}
         onSearch={handleSearch}
@@ -1284,7 +1302,7 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                     </div>
 
                     <div className="text-[10px] text-neutral-600 font-mono">
-                      © Nigga Ishanvi
+                      © CineX
                     </div>
                   </footer>
                 </div>
@@ -1317,21 +1335,6 @@ export default function NetflixHome({ onSwitchProfile, onLogout, onHomeClick }) 
                 className="fixed inset-0 z-[110] flex flex-col items-center justify-center p-4 bg-black/90 overflow-y-auto gap-4"
                 onClick={() => setSelectedSearchResult(null)}
               >
-                {/* Cristiano Ronaldo Query Banner (Above Card) */}
-                <div className="z-50 pointer-events-none select-none flex justify-center w-full max-w-4xl px-2">
-                  {selectedSearchResult.isLoadingNigga ? (
-                    <div className="bg-[#141414] border border-white/10 text-white font-sans text-sm font-semibold tracking-wide px-5 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-3">
-                      <span>asking from nigga...</span>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : selectedSearchResult.niggaAnswered ? (
-                    <div className="bg-[#141414] border border-white/10 text-green-500 font-sans text-sm font-semibold tracking-wide px-5 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-2">
-                      <span>got answer from gnoat, greatest nigga of all time!</span>
-                      <span className="text-green-500">✓</span>
-                    </div>
-                  ) : null}
-                </div>
-
                 <motion.div
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}

@@ -91,6 +91,15 @@ export default async function handler(req, res) {
       }
     }
 
+    function isValidPage(page) {
+      if (!page || page.status !== 200 || !page.body || page.body.length < 200) return false;
+      const b = page.body;
+      if (b.includes('Server Busy') || b.includes('Time not Found') || b.includes('Not Found. or Come from listed Website.') || b.includes('const qualities = [];')) {
+        return false;
+      }
+      return true;
+    }
+
     if (item && item.dp) {
       // 1. Play via watchbox.php with DP token (Used for all NetMirror dubbed/original releases)
       const signTarget = `${item.tm_id || effectiveTmdbId}:${timestamp}`;
@@ -98,46 +107,48 @@ export default async function handler(req, res) {
       const na = Buffer.from(item.title || 'Video').toString('base64');
 
       const watchboxUrl = `https://${primaryDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${type === 'tv' ? '1' : ''}&token=&warp=`;
-      targetPage = await fetchText(watchboxUrl, 'https://netmirror.plus/');
-
-      if (targetPage.status !== 200 || !targetPage.body || targetPage.body.length < 500) {
+      const res1 = await fetchText(watchboxUrl, 'https://netmirror.plus/');
+      if (isValidPage(res1)) {
+        targetPage = res1;
+      } else {
         const fallbackUrl = `https://${fallbackDomain}/play/watchbox.php?id=${item.id}&se=${se}&ep=${ep}&dp=${encodeURIComponent(item.dp || '')}&na=${encodeURIComponent(na)}&year=${encodeURIComponent(item.release_date || '2023')}&tm_id=${item.tm_id || effectiveTmdbId}&ts=${timestamp}&sig=${sig}&nid=&exten=&tv=${type === 'tv' ? '1' : ''}&token=&warp=`;
-        const fbPage = await fetchText(fallbackUrl, 'https://netmirror.plus/');
-        if (fbPage.status === 200 && fbPage.body.length > 500) {
-          targetPage = fbPage;
-        }
-      }
-    } else {
-      // 2. Play generic TMDB show/movie via external.php on NetMirror servers
-      const signTarget = `${effectiveTmdbId}:${timestamp}`;
-      const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
-
-      const externalUrl = `https://${primaryDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
-      targetPage = await fetchText(externalUrl, 'https://netmirror.plus/');
-
-      if (targetPage.status !== 200 || !targetPage.body || targetPage.body.length < 500) {
-        const fallbackUrl = `https://${fallbackDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
-        const fbPage = await fetchText(fallbackUrl, 'https://netmirror.plus/');
-        if (fbPage.status === 200 && fbPage.body.length > 500) {
-          targetPage = fbPage;
+        const res2 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
+        if (isValidPage(res2)) {
+          targetPage = res2;
         }
       }
     }
 
-    const fallbackPlayerUrl = type === 'tv'
-      ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=false&fallback=true`
-      : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=false&fallback=true`;
+    // 2. If watchbox is unavailable or failed (e.g. Server Busy), fall back to external.php on primary & fallback domains
+    if (!isValidPage(targetPage)) {
+      const signTarget = `${effectiveTmdbId}:${timestamp}`;
+      const sig = crypto.createHmac('sha256', secret).update(signTarget).digest('hex');
 
-    if (!targetPage || !targetPage.body || targetPage.body.length < 200) {
-      res.writeHead(302, { 'Location': fallbackPlayerUrl });
+      const externalUrl = `https://${primaryDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
+      const res3 = await fetchText(externalUrl, 'https://netmirror.plus/');
+      if (isValidPage(res3)) {
+        targetPage = res3;
+      } else {
+        const fallbackUrl = `https://${fallbackDomain}/play/external.php?tm_id=${effectiveTmdbId}&se=${se}&ep=${ep}&tm_type=${type}&ts=${timestamp}&sig=${sig}&exten=`;
+        const res4 = await fetchText(fallbackUrl, 'https://netmirror.plus/');
+        if (isValidPage(res4)) {
+          targetPage = res4;
+        }
+      }
+    }
+
+    const directNetmirrorUrl = `https://netmirror.plus/${type}/${netIdToUse || item?.id || effectiveTmdbId}/?se=${se}&ep=${ep}`;
+
+    if (!isValidPage(targetPage)) {
+      res.writeHead(302, { 'Location': directNetmirrorUrl });
       return res.end();
     }
 
     let cleanHtml = targetPage.body;
 
     // Check if NetMirror has no streams for this title (e.g. qualities empty or not found)
-    if (cleanHtml.includes('const qualities = [];') || cleanHtml.includes('Not Found. or Come from listed Website.')) {
-      res.writeHead(302, { 'Location': fallbackPlayerUrl });
+    if (cleanHtml.includes('const qualities = [];') || cleanHtml.includes('Not Found. or Come from listed Website.') || cleanHtml.includes('Server Busy')) {
+      res.writeHead(302, { 'Location': directNetmirrorUrl });
       return res.end();
     }
 
@@ -175,7 +186,7 @@ export default async function handler(req, res) {
     // If external.php timer triggers (NetMirror Server 1 unavailable), seamlessly jump to fast fallback
     cleanHtml = cleanHtml.replace(
       'showLoading("Not Found", "Stream is not available.");',
-      `window.location.replace("${fallbackPlayerUrl}");`
+      `window.location.replace("${directNetmirrorUrl}");`
     );
 
     // Inject base href so all relative media/icons resolve properly to the origin server

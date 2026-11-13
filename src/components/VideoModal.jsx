@@ -48,20 +48,31 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
 
   const [currentProvider, setCurrentProvider] = useState(() => {
-    if (media.dubbedLang || media.isDubbed) return 'netmirror';
     const saved = window.localStorage.getItem('off_campus_provider');
-    if (saved && saved !== 'videasy') return saved;
-    if (media.provider && media.provider !== 'videasy') return media.provider;
-    return 'vidlink';
+    if (saved === 'netmirror' || saved === 'artplayer') return saved;
+    return 'artplayer';
   });
 
   useEffect(() => {
-    if (media.dubbedLang || media.isDubbed) {
-      setCurrentProvider('netmirror');
-    } else if (media.provider && media.provider !== currentProvider && media.provider !== 'videasy') {
+    if (media.provider === 'netmirror' || media.provider === 'artplayer') {
       setCurrentProvider(media.provider);
     }
-  }, [media.provider, media.dubbedLang, media.isDubbed]);
+  }, [media.provider]);
+
+  // Background fallback listener: if player emits an error, seamlessly switch in bg
+  useEffect(() => {
+    const handlePlayerMessage = (e) => {
+      if (
+        e.data === 'PLAYER_ERROR' ||
+        e.data === 'NOT_FOUND' ||
+        (typeof e.data === 'object' && (e.data?.type === 'PLAYER_ERROR' || e.data?.status === 'not_found' || e.data?.status === 'error'))
+      ) {
+        setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : 'artplayer'));
+      }
+    };
+    window.addEventListener('message', handlePlayerMessage);
+    return () => window.removeEventListener('message', handlePlayerMessage);
+  }, []);
 
   // Notify parent window that a player modal is active to block popups & navigation hijacks
   useEffect(() => {
@@ -144,24 +155,9 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
   // Validate and set sensible default provider
   useEffect(() => {
     const saved = localStorage.getItem('off_campus_provider');
-    const validProviders = [
-      'vidlink',
-      'netmirror',
-      'netmirror_backup',
-      'videasy',
-      'smashystream',
-      'vidsrc_pm',
-      'vidsrc_sh',
-      'autoembed',
-      'embed_su',
-      'vidplay',
-      'vidsrc_in',
-      'vidsrc_xyz',
-      'vidsrc_cc',
-      'multiembed'
-    ];
+    const validProviders = ['artplayer', 'netmirror'];
     if (!saved || !validProviders.includes(saved)) {
-      localStorage.setItem('off_campus_provider', 'vidlink');
+      localStorage.setItem('off_campus_provider', 'artplayer');
     }
   }, []);
 
@@ -401,22 +397,10 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   });
                 }
               }}
-              className="bg-[#ff4d85]/90 hover:bg-[#ff4d85] border border-white/20 text-white rounded px-2.5 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors"
+              className="bg-[#e50914] hover:bg-[#b20710] border border-white/20 text-white rounded px-3 py-1.5 text-xs font-mono tracking-widest uppercase outline-none cursor-pointer shadow-lg transition-colors font-bold"
             >
-              <option value="vidlink">Mirror 1 (VidLink Pro - Clean 1080p / Fast)</option>
-              <option value="netmirror">Mirror 2 (NetMirror HD - Dual-Audio & Dubs / Server 1)</option>
-              <option value="netmirror_backup">Mirror 3 (NetMirror Backup - Server 2)</option>
-              <option value="videasy">Mirror 4 (Videasy - Multi-Lang & Clean HD)</option>
-              <option value="smashystream">Mirror 5 (SmashyStream - Multi-Server)</option>
-              <option value="vidsrc_pm">Mirror 6 (VidSrc PM - Fast HD)</option>
-              <option value="vidsrc_sh">Mirror 7 (VidSrc SH - Universal Fast)</option>
-              <option value="autoembed">Mirror 8 (AutoEmbed - Clean HD)</option>
-              <option value="embed_su">Mirror 9 (embed.su)</option>
-              <option value="vidplay">Mirror 10 (Vidplay - Anime & Fast HD)</option>
-              <option value="vidsrc_in">Mirror 11 (DGHG / vidsrc.in)</option>
-              <option value="vidsrc_xyz">Mirror 12 (BYFMS / vidsrc.xyz)</option>
-              <option value="vidsrc_cc">Mirror 13 (VidSrc CC)</option>
-              <option value="multiembed">Mirror 14 (2Embed - Global Mirrors)</option>
+              <option value="artplayer">ArtPlayer (artplayer.org / High Speed)</option>
+              <option value="netmirror">NetMirror (Cluster Mirror)</option>
             </select>
 
             {/* Audio Language / Dubbing Selector */}
@@ -685,89 +669,24 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   }
 
                   const id = isOffCampus ? '273240' : (resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625');
-                  const provider = (currentProvider && currentProvider !== 'videasy') ? currentProvider : 'vidlink';
-                  const startParam = startOffsetTime ? `&start=${Math.floor(startOffsetTime)}` : '';
+                  const provider = currentProvider === 'netmirror' ? 'netmirror' : 'artplayer';
+                  const netId = resolveNetmirrorId();
+                  const mType = isTv || isOffCampus ? 'tv' : 'movie';
                   const mediaTitleParam = encodeURIComponent(media.title || media.name || '');
                   const currentLangParam = encodeURIComponent(selectedLanguage || 'default');
 
                   if (provider === 'netmirror') {
-                    const netId = resolveNetmirrorId();
-                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=1&title=${mediaTitleParam}&lang=${currentLangParam}`;
-                  } else if (provider === 'netmirror_backup') {
-                    const netId = resolveNetmirrorId();
-                    return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${isTv || isOffCampus ? 'tv' : 'movie'}&server=2&title=${mediaTitleParam}&lang=${currentLangParam}`;
-                  } else if (provider === 'videasy') {
-                    if (isTv || isOffCampus) {
-                      return `https://player.videasy.to/tv/${id}/${currentSeason}/${currentEpisode}?color=e50914`;
-                    }
-                    return `https://player.videasy.to/movie/${id}?color=e50914`;
-                  } else if (provider === 'vidlink') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidlink.pro/tv/${id}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=false&fallback=true`;
-                    }
-                    return `https://vidlink.pro/movie/${id}?primaryColor=e50914&autoplay=false&fallback=true`;
-                  } else if (provider === 'vidsrc_in') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidsrc.in/embed/tv/${id}/${currentSeason}/${currentEpisode}?autoplay=1${startParam}`;
-                    }
-                    return `https://vidsrc.in/embed/movie/${id}?autoplay=1${startParam}`;
-                  } else if (provider === 'vidsrc_sh') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidsrc.sh/embed/tv?tmdb=${id}&season=${currentSeason}&episode=${currentEpisode}&autoplay=1${startParam}`;
-                    }
-                    return `https://vidsrc.sh/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
-                  } else if (provider === 'vidsrc_xyz') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${currentSeason}&episode=${currentEpisode}&autoplay=1${startParam}`;
-                    }
-                    return `https://vidsrc.xyz/embed/movie?tmdb=${id}&autoplay=1${startParam}`;
-                  } else if (provider === 'vidsrc_cc') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidsrc.cc/v2/embed/tv/${id}/${currentSeason}/${currentEpisode}`;
-                    }
-                    return `https://vidsrc.cc/v2/embed/movie/${id}`;
-                  } else if (provider === 'autoembed') {
-                    if (isTv || isOffCampus) {
-                      return `https://autoembed.co/tv/tmdb/${id}-${currentSeason}-${currentEpisode}`;
-                    }
-                    return `https://autoembed.co/movie/tmdb/${id}`;
-                  } else if (provider === 'vidsrc_pm') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidsrc.pm/embed/tv/${id}/${currentSeason}/${currentEpisode}?autoplay=1${startParam}`;
-                    }
-                    return `https://vidsrc.pm/embed/movie/${id}?autoplay=1${startParam}`;
-                  } else if (provider === 'vidplay') {
-                    if (isTv || isOffCampus) {
-                      return `https://vidplay.to/stream/embed?imdbid=${media.imdbId || ''}&tmdbid=${id}&type=tv&name=${encodeURIComponent(media.title || '')}&year=2024&season=${currentSeason}&episode=${currentEpisode}`;
-                    }
-                    return `https://vidplay.to/stream/embed?imdbid=${media.imdbId || ''}&tmdbid=${id}&type=movie&name=${encodeURIComponent(media.title || '')}&year=2024&season=0&episode=0`;
-                  } else if (provider === 'embed_su') {
-                    if (isTv || isOffCampus) {
-                      return `https://embed.su/embed/tv/${id}/${currentSeason}/${currentEpisode}?start=${Math.floor(startOffsetTime)}`;
-                    }
-                    return `https://embed.su/embed/movie/${id}?start=${Math.floor(startOffsetTime)}`;
-                  } else if (provider === 'multiembed') {
-                    if (isTv) {
-                      return `https://www.2embed.cc/embedtv/${id}&s=${currentSeason}&e=${currentEpisode}`;
-                    }
-                    return `https://www.2embed.cc/embed/${id}`;
-                  } else if (provider === 'smashystream') {
-                    if (isTv || isOffCampus) {
-                      return `https://player.smashy.stream/tv/${id}?s=${currentSeason}&e=${currentEpisode}`;
-                    }
-                    return `https://player.smashy.stream/movie/${id}`;
+                    return `https://netmirror.plus/${mType}/${netId || id}/?se=${currentSeason}&ep=${currentEpisode}`;
                   }
 
-                  let base = media.url ? media.url.replace('streamimdb.ru/tv/', 'streamimdb.ru/embed/tv/') : '';
-                  if (isTv && base.includes('/embed/tv/')) {
-                    const idPart = media.imdbId || id;
-                    base = `https://streamimdb.ru/embed/tv/${idPart}/${currentSeason}/${currentEpisode}`;
-                  }
-                  const separator = base.includes('?') ? '&' : '?';
-                  return base ? `${base}${separator}start=${Math.floor(startOffsetTime)}` : '';
+                  // Default: ArtPlayer streaming engine powered by /api/dubbed-player (artplayer.org HTML5 video engine)
+                  return `/api/dubbed-player?id=${netId}&tmdb_id=${id}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&server=1&title=${mediaTitleParam}&lang=${currentLangParam}`;
                 })()}
+                onError={() => {
+                  // Automatic background fallback switch
+                  setCurrentProvider(prev => (prev === 'artplayer' ? 'netmirror' : 'artplayer'));
+                }}
                 className="w-full h-full border-0 bg-black cursor-default"
-                sandbox={currentProvider === 'vidsrc_pm' ? "allow-scripts allow-same-origin allow-forms allow-presentation" : undefined}
                 allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *"
                 allowFullScreen
               />

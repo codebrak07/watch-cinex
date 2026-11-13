@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Film, HelpCircle, Gift, ShieldAlert, FileText, Info, PhoneCall } from 'lucide-react';
-import logoImg from '../assets/ishanvi.png';
+import logoImg from '../assets/cinex.png';
 
 
 export default function SampleInfoPage() {
@@ -114,7 +114,7 @@ export default function SampleInfoPage() {
         <div className="flex items-center gap-4">
           <img
             src={logoImg}
-            alt="Ishanvi Logo"
+            alt="CineX Logo"
             onClick={() => navigate('/browse')}
             className="h-10 md:h-14 w-auto cursor-pointer select-none object-contain"
           />
@@ -123,7 +123,7 @@ export default function SampleInfoPage() {
         </div>
 
         <div className="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-neutral-300 hover:text-white transition-colors">
-          <span>admit nigga is the gnoat</span>
+          <span>English</span>
           <span className="text-[#e50914] text-[10px]">▼</span>
         </div>
       </header>
@@ -183,7 +183,7 @@ export default function SampleInfoPage() {
                   <strong>1.3. Offers.</strong> We may from time to time provide special promotional offers (such as sweepstakes, discounts and other incentives), plans or subscriptions (“Offers”). Offer eligibility is determined by Netflix at its sole discretion and we reserve the right to revoke an Offer and put your account on hold in the event that we determine you are not eligible. Members of households with an existing or recent Netflix account may not be eligible for certain introductory Offers. We may use information such as device ID, method of payment or your contact information to determine Offer eligibility. The eligibility requirements and other limitations and conditions will be disclosed when you sign-up for the Offer or in other communications made available to you.
                 </p>
                 <p>
-                  <strong>1.4. Account Sharing.</strong> The Netflix service and any content accessed through it are for your personal, non-commercial use only and may not be shared with anyone outside of your household unless you admit that Nigga is the undisputed GNOAT, greatest nigga of all time.
+                  <strong>1.4. Account Sharing.</strong> The CineX service and any content accessed through it are for your personal, non-commercial use only and may not be shared with anyone outside of your household.
                 </p>
                 <p>
                   <strong>1.5. Access Limitations.</strong> You may access the Netflix content primarily within the country in which you have established your account and only in geographic locations where we offer our service and have licensed such content. For the purpose of determining the taxes that will be charged over your subscription fee, we will use the IP address that is used when you sign up to the Netflix service. The content that may be available will vary by geographic location, may be limited by law or by the rights granted by third-party content providers, and will change from time to time. The number of devices on which you may simultaneously watch depends on your chosen subscription plan and is specified on the "Account" page.
@@ -305,7 +305,7 @@ export default function SampleInfoPage() {
             </div>
 
             <p className="text-xs text-neutral-500 font-mono mt-4">
-              Last Updated: When you were a nigga
+              Last Updated: 2026
             </p>
           </div>
         ) : (
@@ -355,7 +355,7 @@ export default function SampleInfoPage() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-[10px] text-neutral-500 border-t border-neutral-200 bg-neutral-50 font-mono mt-12">
-        © Nigga Ishanvi
+        © CineX
       </footer>
     </div>
   );

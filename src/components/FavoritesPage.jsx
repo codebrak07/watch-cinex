@@ -184,7 +184,7 @@ export default function FavoritesPage({ onSwitchProfile, onLogout, onHomeClick }
         </div>
 
         <div className="text-[10px] text-neutral-600 font-mono">
-          © Nigga Ishanvi
+          © CineX
         </div>
       </footer>
 
