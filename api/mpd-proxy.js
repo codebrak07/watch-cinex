@@ -40,13 +40,20 @@ export default async function handler(req, res) {
       let body = '';
       proxyRes.on('data', (chunk) => (body += chunk));
       proxyRes.on('end', () => {
-        // Rewrite all .m4s segment URLs (both absolute and relative) to go through /api/segment-proxy
+        let origin = '';
+        if (req.headers['x-forwarded-host']) {
+          origin = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers['x-forwarded-host']}`;
+        } else if (req.headers.host) {
+          origin = `https://${req.headers.host}`;
+        }
+
+        // Rewrite all .m4s segment URLs (both absolute and relative) to go through our absolute /api/segment-proxy
         let rewritten = body.replace(/((?:https?:\/\/[^'"\s<>]+\.m4s|[\w\-./]+\.m4s)(?:\?[^'"\s<>]*)?)/gi, (match) => {
           let fullSegmentUrl = match;
           if (!fullSegmentUrl.startsWith('http://') && !fullSegmentUrl.startsWith('https://')) {
             fullSegmentUrl = upstreamBase + fullSegmentUrl;
           }
-          return `/api/segment-proxy?url=${encodeURIComponent(fullSegmentUrl)}`;
+          return `${origin}/api/segment-proxy?url=${encodeURIComponent(fullSegmentUrl)}`;
         });
 
         res.statusCode = proxyRes.statusCode || 200;

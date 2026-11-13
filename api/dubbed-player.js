@@ -198,8 +198,8 @@ export default async function handler(req, res) {
     // 3. Resilient Global Cluster Fallback: if Server 1 and 2 are busy or have no stream, or Server 3 requested
     if (!isValidPage(targetPage) || serverPref === '3') {
       const globalUrl = isTvMedia
-        ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true`
-        : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true`;
+        ? `https://vidlink.pro/tv/${effectiveTmdbId}/${se}/${ep}?primaryColor=e50914&autoplay=true&fallback=true`
+        : `https://vidlink.pro/movie/${effectiveTmdbId}?primaryColor=e50914&autoplay=true&fallback=true`;
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -306,20 +306,30 @@ export default async function handler(req, res) {
     const corsInterceptorScript = `
       <script>
         (function() {
+          var appOrigin = window.location.origin;
+          var upstreamPlayBase = 'https://${primaryDomain}/play/';
+
           function rewriteUrl(inputUrl) {
             if (!inputUrl || typeof inputUrl !== 'string') return inputUrl;
             try {
-              var resolved = new URL(inputUrl, document.baseURI).href;
-              // Route DASH manifests through local MPD proxy with CORS
+              var resolved = inputUrl;
+              if (!resolved.startsWith('http://') && !resolved.startsWith('https://')) {
+                if (resolved.startsWith('/api/')) {
+                  return appOrigin + resolved;
+                }
+                resolved = new URL(inputUrl, upstreamPlayBase).href;
+              }
+
+              // Route DASH manifests through our origin's MPD proxy with CORS
               if (resolved.includes('index_web.mpd') || resolved.includes('.mpd')) {
                 if (!resolved.includes('/api/mpd-proxy')) {
-                  return '/api/mpd-proxy?url=' + encodeURIComponent(resolved);
+                  return appOrigin + '/api/mpd-proxy?url=' + encodeURIComponent(resolved);
                 }
               }
-              // Route video chunks through local segment proxy with CORS
+              // Route video chunks through our origin's segment proxy with CORS
               if (resolved.includes('.m4s') || resolved.includes('.ts')) {
                 if (!resolved.includes('/api/segment-proxy')) {
-                  return '/api/segment-proxy?url=' + encodeURIComponent(resolved);
+                  return appOrigin + '/api/segment-proxy?url=' + encodeURIComponent(resolved);
                 }
               }
               // Route any external stream/CDN requests that lack CORS
@@ -330,7 +340,7 @@ export default async function handler(req, res) {
                 resolved.includes('watch22.shop')
               ) {
                 if (!resolved.includes('/api/fetch-proxy') && !resolved.includes('/api/mpd-proxy') && !resolved.includes('/api/segment-proxy')) {
-                  return '/api/fetch-proxy?url=' + encodeURIComponent(resolved);
+                  return appOrigin + '/api/fetch-proxy?url=' + encodeURIComponent(resolved);
                 }
               }
             } catch(e) {}
@@ -356,12 +366,18 @@ export default async function handler(req, res) {
       </script>
     `;
 
-    // Inject base href and no-referrer policy so media CDNs allow segment fetching without CORB
-    const headMeta = `<head><meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + corsInterceptorScript;
+    // Rewrite relative scripts, stylesheets, and images so they load directly from NetMirror without needing a <base> tag
+    cleanHtml = cleanHtml.replace(/(<(?:script|link|img)[^>]*(?:src|href)=["'])(?!https?:\/\/|\/|data:)([^'"]+)(["'])/gi, `$1https://${primaryDomain}/play/$2$3`);
+
+    // Remove any <base> tag to prevent it from hijacking local /api/ proxy endpoints
+    cleanHtml = cleanHtml.replace(/<base[^>]*>/gi, '');
+
+    // Inject no-referrer policy and the CORS interceptor into head
+    const headMeta = `<head><meta name="referrer" content="no-referrer">` + corsInterceptorScript;
     if (cleanHtml.includes('<head>')) {
       cleanHtml = cleanHtml.replace('<head>', headMeta);
     } else {
-      cleanHtml = `<meta name="referrer" content="no-referrer"><base href="https://${primaryDomain}/play/">` + corsInterceptorScript + cleanHtml;
+      cleanHtml = `<meta name="referrer" content="no-referrer">` + corsInterceptorScript + cleanHtml;
     }
 
     // Clean up unnecessary NetMirror UI elements (e.g. "How To Download" button) & enhance controls
