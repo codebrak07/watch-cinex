@@ -8,6 +8,16 @@
         { "key": "Access-Control-Allow-Headers", "value": "*" },
         { "key": "Access-Control-Expose-Headers", "value": "*" }
       ]
+    },
+    {
+      "source": "/(.*)index_web.mpd(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, HEAD, OPTIONS, POST" },
+        { "key": "Access-Control-Allow-Headers", "value": "*" },
+        { "key": "Access-Control-Expose-Headers", "value": "*" },
+        { "key": "Content-Type", "value": "application/dash+xml" }
+      ]
     }
   ],
   "rewrites": [
@@ -18,6 +28,18 @@
     {
       "source": "/api/netmirror/:path*",
       "destination": "https://netmirror.plus/:path*"
+    },
+    {
+      "source": "/play/index_web.mpd",
+      "destination": "/api/mpd-proxy"
+    },
+    {
+      "source": "/index_web.mpd",
+      "destination": "/api/mpd-proxy"
+    },
+    {
+      "source": "/api/index_web.mpd",
+      "destination": "/api/mpd-proxy"
     },
     {
       "source": "/((?!api/).*)",

@@ -261,6 +261,10 @@ export default async function handler(req, res) {
     cleanHtml = cleanHtml.replace(/function\s+play_url\s*\([^)]*\)\s*\{[\s\S]*?return\s+strp\([^)]*\);?\s*\}/gi, 'function play_url(u){ return u; }');
     cleanHtml = cleanHtml.replace(/function\s+strp\s*\([^)]*\)\s*\{[\s\S]*?return\s+['"][^'"]*play_url['"];?\s*\}/gi, 'function strp(u){ return u; }');
 
+    // Rewrite any index_web.mpd in player scripts directly to our /api/mpd-proxy to ensure CORS compliance on Vercel
+    cleanHtml = cleanHtml.replace(/(['"])(?:https?:\/\/[^'"]*\/)?index_web\.mpd\?/gi, '$1/api/mpd-proxy?');
+    cleanHtml = cleanHtml.replace(/index_web\.mpd\?/gi, 'api/mpd-proxy?');
+
     // Replace backward and forward buttons with clean, high-res inline SVG icons
     cleanHtml = cleanHtml.replace(
       /'<div class="backword"><img src="rewind.svg"><\/div>'/g,
