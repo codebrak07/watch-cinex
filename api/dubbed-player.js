@@ -35,52 +35,55 @@ export default async function handler(req, res) {
 
     let netIdToUse = String(id || '').replace(/^dub_/, '').trim();
     let item = null;
+    const cleanTmdbId = String(tmdbIdParam || '').replace(/^dub_/, '').trim();
 
-    // Check if we have a direct NetMirror ID
-    if (netIdToUse && !isNaN(Number(netIdToUse))) {
-      let details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${netIdToUse}`);
-      if (!details || !details.results || details.results.length === 0) {
-        const altType = type === 'tv' ? 'movie' : 'tv';
-        const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${netIdToUse}`);
-        if (altDetails && altDetails.results && altDetails.results.length > 0) {
-          details = altDetails;
-        }
-      }
-      if (details && details.results && details.results.length > 0) {
-        item = details.results[0];
-      }
-    }
-
-    // If ID was not passed or details not found, resolve directly from NetMirror catalog using title
-    if (!item && titleParam) {
-      const cleanTitle = titleParam
-        .replace(/\[.*?\]|\(.*?\)/g, '')
-        .replace(/\bS\d+(-S\d+)?\b/gi, '')
-        .trim();
-      const relatedData = await fetchJson(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanTitle)}?page=0`);
-      if (relatedData && relatedData.results && relatedData.results.length > 0) {
-        let matched = null;
-        if (langParam && langParam !== 'default') {
-          matched = relatedData.results.find(r => r.title && r.title.toLowerCase().includes(langParam.toLowerCase()));
-        }
-        if (!matched) {
-          matched = relatedData.results.find(r => r.title && !r.title.includes('[')) ||
-                    relatedData.results.find(r => r.title && r.title.toLowerCase().includes('original')) ||
-                    relatedData.results[0];
-        }
-        if (matched && matched.id) {
-          netIdToUse = String(matched.id).replace(/^dub_/, '').trim();
-          const targetType = matched.media_type || type;
-          let details = await fetchJson(`https://api2.imdb3.shop/api/${targetType}/${matched.id}`);
-          if (!details || !details.results || details.results.length === 0) {
-            const altType = targetType === 'tv' ? 'movie' : 'tv';
-            const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${matched.id}`);
-            if (altDetails && altDetails.results && altDetails.results.length > 0) {
-              details = altDetails;
-            }
+    // Fast resolution: Only call external NetMirror catalog if TMDB ID is not already known
+    if (!cleanTmdbId) {
+      if (netIdToUse && !isNaN(Number(netIdToUse))) {
+        let details = await fetchJson(`https://api2.imdb3.shop/api/${type}/${netIdToUse}`);
+        if (!details || !details.results || details.results.length === 0) {
+          const altType = type === 'tv' ? 'movie' : 'tv';
+          const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${netIdToUse}`);
+          if (altDetails && altDetails.results && altDetails.results.length > 0) {
+            details = altDetails;
           }
-          if (details && details.results && details.results.length > 0) {
-            item = details.results[0];
+        }
+        if (details && details.results && details.results.length > 0) {
+          item = details.results[0];
+        }
+      }
+
+      // If ID was not passed or details not found, resolve directly from NetMirror catalog using title
+      if (!item && titleParam) {
+        const cleanTitle = titleParam
+          .replace(/\[.*?\]|\(.*?\)/g, '')
+          .replace(/\bS\d+(-S\d+)?\b/gi, '')
+          .trim();
+        const relatedData = await fetchJson(`https://api2.imdb4.shop/api/related/${encodeURIComponent(cleanTitle)}?page=0`);
+        if (relatedData && relatedData.results && relatedData.results.length > 0) {
+          let matched = null;
+          if (langParam && langParam !== 'default') {
+            matched = relatedData.results.find(r => r.title && r.title.toLowerCase().includes(langParam.toLowerCase()));
+          }
+          if (!matched) {
+            matched = relatedData.results.find(r => r.title && !r.title.includes('[')) ||
+                      relatedData.results.find(r => r.title && r.title.toLowerCase().includes('original')) ||
+                      relatedData.results[0];
+          }
+          if (matched && matched.id) {
+            netIdToUse = String(matched.id).replace(/^dub_/, '').trim();
+            const targetType = matched.media_type || type;
+            let details = await fetchJson(`https://api2.imdb3.shop/api/${targetType}/${matched.id}`);
+            if (!details || !details.results || details.results.length === 0) {
+              const altType = targetType === 'tv' ? 'movie' : 'tv';
+              const altDetails = await fetchJson(`https://api2.imdb3.shop/api/${altType}/${matched.id}`);
+              if (altDetails && altDetails.results && altDetails.results.length > 0) {
+                details = altDetails;
+              }
+            }
+            if (details && details.results && details.results.length > 0) {
+              item = details.results[0];
+            }
           }
         }
       }
@@ -88,7 +91,6 @@ export default async function handler(req, res) {
 
     const resolvedType = (item && item.media_type) || type;
     const isTvMedia = resolvedType === 'tv';
-    const cleanTmdbId = String(tmdbIdParam || '').replace(/^dub_/, '').trim();
     const effectiveTmdbId = (item && item.tm_id) || cleanTmdbId || (netIdToUse ? '' : '127529');
 
     // Fast, resilient iframe provider cluster without cross-origin read blocking
@@ -162,8 +164,7 @@ export default async function handler(req, res) {
       <body>
         <iframe
           src="${playerIframeUrl}"
-          allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
-          allowfullscreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           referrerpolicy="no-referrer"
         ></iframe>
       </body>

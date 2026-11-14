@@ -693,7 +693,6 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                     console.warn(e);
                   }
 
-                  const netId = resolveNetmirrorId();
                   const serverNumMap = {
                     artplayer: '1',
                     netmirror: '2',
@@ -705,11 +704,49 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                   const serverNum = serverNumMap[currentProvider] || '1';
                   const activeVariant = availableLanguages.find(v => v.lang.toLowerCase() === selectedLanguage.toLowerCase());
                   const mType = (activeVariant && activeVariant.mediaType) || media.mediaType || media.media_type || (isTv || isOffCampus ? 'tv' : 'movie');
+                  const isTvMedia = mType === 'tv';
                   const cleanTmdb = isOffCampus ? '273240' : String(resolvedTmdbId || tmdbIdParam || media.tmdbId || media.id || (media.url && (media.url.match(/\/embed\/(?:tv|movie)\/([^/?]+)/) || [])[1]) || (media.url && (media.url.match(/\/tv\/([^/?]+)/) || [])[1]) || '10625').replace(/^dub_/, '');
-                  const rawTitleVal = encodeURIComponent(media.title || media.name || '');
-                  const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
 
-                  return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${cleanTmdb}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
+                  // If user specifically picked a dubbed language variant and has a netmirror ID, use dubbed player endpoint
+                  if (selectedLanguage && selectedLanguage !== 'default') {
+                    const netId = resolveNetmirrorId();
+                    const rawTitleVal = encodeURIComponent(media.title || media.name || '');
+                    const rawLangVal = encodeURIComponent(selectedLanguage || 'default');
+                    return `/api/dubbed-player?id=${netId}&se=${currentSeason}&ep=${currentEpisode}&type=${mType}&tmdb_id=${cleanTmdb}&server=${serverNum}&title=${rawTitleVal}&lang=${rawLangVal}`;
+                  }
+
+                  // High-speed direct iframe streaming (Zero nested iframes, 0ms latency, zero CORB)
+                  if (serverNum === '3') {
+                    // Server 3 (Strictly preserved untouched)
+                    return isTvMedia
+                      ? `https://vidlink.pro/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true&fallback=true`
+                      : `https://vidlink.pro/movie/${cleanTmdb}?primaryColor=e50914&autoplay=true&fallback=true`;
+                  } else if (serverNum === '2') {
+                    // Server 2 (2Embed High Speed Cluster)
+                    return isTvMedia
+                      ? `https://www.2embed.cc/embedtv/${cleanTmdb}&s=${currentSeason}&e=${currentEpisode}`
+                      : `https://www.2embed.cc/embed/${cleanTmdb}`;
+                  } else if (serverNum === '5') {
+                    // Server 5 (SmashyStream Cluster)
+                    return isTvMedia
+                      ? `https://embed.smashystream.com/playere.php?tmdb=${cleanTmdb}&season=${currentSeason}&episode=${currentEpisode}`
+                      : `https://embed.smashystream.com/playere.php?tmdb=${cleanTmdb}`;
+                  } else if (serverNum === '4') {
+                    // Server 4 (VidLink Mirror 4)
+                    return isTvMedia
+                      ? `https://vidlink.pro/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true&server=4`
+                      : `https://vidlink.pro/movie/${cleanTmdb}?primaryColor=e50914&autoplay=true&server=4`;
+                  } else if (serverNum === '6') {
+                    // Server 6 (VidLink Global High Speed)
+                    return isTvMedia
+                      ? `https://vidlink.pro/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true&global=true`
+                      : `https://vidlink.pro/movie/${cleanTmdb}?primaryColor=e50914&autoplay=true&global=true`;
+                  } else {
+                    // Server 1 (VidLink Mirror 1)
+                    return isTvMedia
+                      ? `https://vidlink.pro/tv/${cleanTmdb}/${currentSeason}/${currentEpisode}?primaryColor=e50914&autoplay=true`
+                      : `https://vidlink.pro/movie/${cleanTmdb}?primaryColor=e50914&autoplay=true`;
+                  }
                 })()}
                 onError={() => {
                   // Automatic background fallback switch
@@ -717,8 +754,7 @@ export default function VideoModal({ media, onClose, onMediaUpdate }) {
                 }}
                 className="w-full h-full border-0 bg-black cursor-default"
                 referrerPolicy="no-referrer"
-                allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *; clipboard-write *"
-                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               />
             </>
           ) : (
